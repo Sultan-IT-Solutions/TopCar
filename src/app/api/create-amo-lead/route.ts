@@ -3,14 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-// Ленивая инициализация Resend только при наличии ключа
-function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-  return new Resend(apiKey);
-}
+export const runtime = 'nodejs';
 
 const {
   AMOCRM_SUBDOMAIN,
@@ -18,10 +11,15 @@ const {
   AMOCRM_CLIENT_SECRET,
   AMOCRM_REDIRECT_URI,
   AMOCRM_AUTH_CODE,
+  RESEND_API_KEY,
 } = process.env;
 
-// Функция получения токена доступа (остается без изменений)
-async function getAccessToken() {
+function getResendClient() {
+  if (!RESEND_API_KEY) return null;
+  return new Resend(RESEND_API_KEY);
+}
+
+async function exchangeAuthCodeForTokensIfNeeded() {
   const url = `${AMOCRM_SUBDOMAIN}/oauth2/access_token`;
   const body = {
     client_id: AMOCRM_CLIENT_ID,
@@ -30,90 +28,97 @@ async function getAccessToken() {
     code: AMOCRM_AUTH_CODE,
     redirect_uri: AMOCRM_REDIRECT_URI,
   };
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Ошибка получения токена: ${JSON.stringify(errorData)}`);
-    }
-    const data = await response.json();
-    return data.access_token;
-  } catch (error) {
-    console.error('Не удалось получить access token:', error);
-    throw error;
-  }
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(`Ошибка получения токена: ${JSON.stringify(data)}`);
+  return data;
 }
 
-// Основной обработчик запроса
+function validatePayload(payload: any) {
+  if (!payload) throw new Error('Empty body');
+  const { userName, userPhone, carName, bookingDetails } = payload;
+  if (!userName || !carName) throw new Error('Недостаточно данных: userName и carName обязательны');
+  return { userName, userPhone, carName, bookingDetails: bookingDetails || {} };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { userName, userPhone, carName, bookingDetails } = await req.json();
+    const payload = await req.json();
+    const { userName, userPhone, carName, bookingDetails } = validatePayload(payload);
 
-    // 1. Отправка данных в amoCRM (без изменений)
-    try {
-      const accessToken = await getAccessToken();
-      const url = `${AMOCRM_SUBDOMAIN}/api/v4/leads/complex`;
-      const leadData = [{
-        name: `Заявка на ${carName} от ${userName}`,
-        price: bookingDetails.price,
-        _embedded: {
-          contacts: [{
-            first_name: userName,
-            custom_fields_values: [{
-              field_code: 'PHONE',
-              values: [{ value: userPhone }],
-            }],
-          }],
-        },
-      }];
+    const tokenData = await exchangeAuthCodeForTokensIfNeeded();
+    const accessToken = tokenData.access_token;
 
-      await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(leadData),
-      });
-    } catch (amoError) {
-      console.error('Ошибка при работе с amoCRM:', amoError);
+    const amoPayload = {
+      add: [
+        {
+          name: `Заявка на ${carName} от ${userName}`,
+          price: bookingDetails?.price || 0,
+          _embedded: {
+            contacts: [
+              {
+                first_name: userName,
+                custom_fields_values: userPhone ? [
+                  {
+                    field_code: 'PHONE',
+                    values: [{ value: userPhone, enum_code: 'MOB' }]
+                  }
+                ] : undefined
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    const amoUrl = `${AMOCRM_SUBDOMAIN}/api/v4/leads/complex`;
+    const amoResp = await fetch(amoUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(amoPayload),
+    });
+
+    const amoBody = await amoResp.json().catch(() => null);
+    if (!amoResp.ok) {
+      console.error('amoCRM error', amoResp.status, amoBody);
+      return NextResponse.json({ ok: false, source: 'amo', status: amoResp.status, body: amoBody }, { status: 502 });
     }
 
-    // 2. Отправка письма через Resend
-    try {
-      const resend = getResendClient();
-      if (!resend) {
-        console.warn('RESEND_API_KEY отсутствует — пропускаем отправку email');
-      } else {
+    const resend = getResendClient();
+    if (resend) {
+      try {
         await resend.emails.send({
-        // ВАЖНО: Используем ваш подтвержденный домен
-        from: 'Заявка с сайта <booking@topcar.club>',
-        to: 'topcar_club@mail.ru', // Ваша почта для получения заявок
-        subject: `Новая заявка: ${carName}`,
-        html: `
-          <div style="font-family: sans-serif; line-height: 1.6;">
-            <h2>Новая заявка с сайта TopCar</h2>
-            <p><strong>Имя клиента:</strong> ${userName}</p>
-            <p><strong>Телефон:</strong> ${userPhone}</p>
-            <p><strong>Автомобиль:</strong> ${carName}</p>
-            <p><strong>Детали:</strong> ${bookingDetails.duration}</p>
-          </div>
-        `,
+          from: 'Заявка с сайта <booking@topcar.club>',
+          to: 'topcar_club@mail.ru',
+          subject: `Новая заявка: ${carName}`,
+          html: `
+            <div>
+              <h2>Новая заявка с сайта TopCar</h2>
+              <p><b>Имя клиента:</b> ${userName}</p>
+              <p><b>Телефон:</b> ${userPhone || '—'}</p>
+              <p><b>Автомобиль:</b> ${carName}</p>
+              <p><b>Детали:</b> ${bookingDetails?.duration || '—'}</p>
+            </div>
+          `
         });
+      } catch (sendErr) {
+        console.error('Ошибка отправки email:', sendErr);
       }
-    } catch (emailError) {
-      console.error('Ошибка отправки email:', emailError);
+    } else {
+      console.warn('RESEND_API_KEY отсутствует — email не отправлен');
     }
 
-    return NextResponse.json({ message: 'Заявка успешно обработана' }, { status: 200 });
-
-  } catch (error) {
-    console.error('Общая ошибка в обработчике:', error);
-    return NextResponse.json({ message: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return NextResponse.json({ ok: true, amo: amoBody }, { status: 200 });
+  } catch (err: any) {
+    console.error('Общая ошибка в обработчике:', err);
+    return NextResponse.json({ ok: false, error: err.message || String(err) }, { status: 500 });
   }
 }

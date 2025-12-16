@@ -13,7 +13,7 @@ npm install -g yarn
 Клонируйте репозиторий и установите зависимости:
 
 ```bash
-git clone https://github.com/Sultan-IT-Solutions/topcar.git
+git clone https://github.com/Sultan-IT-Solutions/TopCar.git
 cd TopCar
 
 yarn install

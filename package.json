@@ -4,16 +4,16 @@
     "main": "index.js",
     "author": "Sultan IT Solutions",
     "scripts": {
-        "dev": "concurrently \"yarn workspace @topcar/frontend dev\" \"yarn workspace @topcar/backend dev\"",
+        "dev": "concurrently \"yarn workspace @topcar/frontend dev\" \"yarn workspace @topcar/backend start:dev\"",
         "build": "concurrently \"yarn workspace @topcar/frontend build\"",
         "start": "",
         "format": "prettier --write .",
-        "clean": "rimraf --glob \"**/node_modules\" \"**/.next\""
+        "clean": "rimraf --glob \"**/node_modules\" \"**/.next\" \"**/dist\""
     },
     "workspaces": [
         "./packages/*"
     ],
-    "license": "ISC",
+    "license": "UNLICENSED",
     "description": "",
     "dependencies": {
         "concurrently": "^9.2.0",

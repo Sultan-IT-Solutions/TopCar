@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
+import { CarModule } from './car/car.module';
 
 @Module({
     imports: [
@@ -12,6 +13,7 @@ import { ConfigModule } from '@nestjs/config';
             process.env.MONGO_URI || 'mongodb://localhost:27017/topcar',
         ),
         AuthModule,
+        CarModule,
     ],
     controllers: [AppController],
     providers: [AppService],

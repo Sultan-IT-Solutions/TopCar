@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateCarDto } from './dto/create-car.dto';
@@ -9,8 +13,20 @@ export class CarService {
     constructor(@InjectModel(Car.name) private readonly carModel: Model<Car>) {}
 
     async create(createCarDto: CreateCarDto): Promise<Car> {
-        const newCar = new this.carModel(createCarDto);
-        return newCar.save();
+        try {
+            const newCar = new this.carModel(createCarDto);
+            return await newCar.save();
+        } catch (error: any) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (error.code === 11000 && error.keyPattern?.slug) {
+                throw new BadRequestException({
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                    message: `Car with slug "${error.keyValue.slug}" already exists`,
+                    field: 'slug',
+                });
+            }
+            throw error;
+        }
     }
 
     async findAll(): Promise<Car[]> {

@@ -15,5 +15,6 @@ import { User, UserSchema } from '../user/user.schema';
     ],
     controllers: [AuthController],
     providers: [AuthService],
+    exports: [JwtModule, AuthService],
 })
 export class AuthModule {}

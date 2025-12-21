@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, HydratedDocument } from 'mongoose';
 
 export enum UserRole {
     CLIENT = 'client',
@@ -8,7 +8,7 @@ export enum UserRole {
 }
 
 @Schema({ timestamps: true })
-export class User extends Document {
+export class User {
     /* =================== ОСНОВНОЕ =================== */
 
     @Prop({ required: true, unique: true, lowercase: true, trim: true })
@@ -36,33 +36,24 @@ export class User extends Document {
 
     /* =================== РЕФЕРАЛКА =================== */
 
-    // Кто пригласил этого пользователя
     @Prop({ type: Types.ObjectId, ref: 'User', index: true })
     referredBy?: Types.ObjectId;
 
-    // Только для партнёра
-    @Prop({
-        unique: true,
-        sparse: true,
-        uppercase: true,
-        trim: true,
-    })
+    @Prop({ unique: true, sparse: true, uppercase: true, trim: true })
     referralCode?: string;
 
-    // Список рефералов партнёра
-    @Prop({
-        type: [{ type: Types.ObjectId, ref: 'User' }],
-        default: [],
-    })
+    @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
     referrals?: Types.ObjectId[];
 
-    // Процент партнёра
     @Prop({ default: 10 })
     referralPercent?: number;
 
-    // Начисленный доход партнёра
     @Prop({ default: 0 })
     referralBalance?: number;
 }
 
+// Создаём схему
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Тип для TypeScript: экземпляр документа Mongoose
+export type UserDocument = HydratedDocument<User>;

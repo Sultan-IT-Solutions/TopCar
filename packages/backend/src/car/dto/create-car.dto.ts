@@ -202,17 +202,15 @@ class SeoDto {
 }
 
 export class CreateCarDto {
-    @IsString()
-    @IsNotEmpty()
-    _id: string;
-
     @ValidateNested()
+    @IsNotEmpty()
     @Type(() => BrandDto)
     brand: BrandDto;
 
     @ValidateNested()
+    @IsNotEmpty()
     @Type(() => ModelDto)
-    model: ModelDto;
+    carModel: ModelDto;
 
     @IsString()
     @IsNotEmpty()
@@ -223,10 +221,12 @@ export class CreateCarDto {
     slug: string;
 
     @ValidateNested()
+    @IsNotEmpty()
     @Type(() => StatusDto)
     status: StatusDto;
 
     @ValidateNested()
+    @IsNotEmpty()
     @Type(() => ClassDto)
     class: ClassDto;
 
@@ -235,10 +235,12 @@ export class CreateCarDto {
     categories: string[];
 
     @ValidateNested()
+    @IsNotEmpty()
     @Type(() => SpecsDto)
     specs: SpecsDto;
 
     @ValidateNested()
+    @IsNotEmpty()
     @Type(() => PricingDto)
     pricing: PricingDto;
 
@@ -248,6 +250,7 @@ export class CreateCarDto {
     options: OptionDto[];
 
     @ValidateNested()
+    @IsNotEmpty()
     @Type(() => InsuranceDto)
     insurance: InsuranceDto;
 

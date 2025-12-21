@@ -2,13 +2,9 @@ import { ReactNode } from 'react';
 import { LocaleProvider } from '@/context/LocaleContext';
 
 interface KkLayoutProps {
-  children: ReactNode;
+    children: ReactNode;
 }
 
 export default function KkLayout({ children }: KkLayoutProps) {
-  return (
-    <LocaleProvider locale="kk">
-      {children}
-    </LocaleProvider>
-  );
+    return <LocaleProvider locale="kk">{children}</LocaleProvider>;
 }

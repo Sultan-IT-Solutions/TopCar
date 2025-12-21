@@ -8,69 +8,83 @@ import { AuthProvider } from '@/context/AuthContext';
 import { LocaleProvider } from '@/context/LocaleContext';
 
 const manrope = Manrope({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600', '700', '800'],
-  display: 'swap',
+    subsets: ['latin', 'cyrillic'],
+    weight: ['400', '500', '600', '700', '800'],
+    display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: {
-    template: '%s | TopCar Almaty',
-    default: 'TopCar - Премиум Аренда Авто в Алматы | Elite Cars Rental',
-  },
-  description: 'Эксклюзивный автопарк премиум-класса в Алматы: элитные авто, электрокары, luxury cars для туристов. VIP-сервис, трансферы, аренда с водителем и без. Premium car rental, elite vehicles, electric cars for tourists in Almaty.',
-  keywords: 'аренда авто Алматы, элитные авто, премиум автомобили, электрокары, для туристов, car rental Almaty, luxury cars, premium vehicles, elite cars, electric cars, VIP service, трансфер аэропорт',
-  manifest: '/manifest.json',
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'TopCar Almaty',
-  },
+    title: {
+        template: '%s | TopCar Almaty',
+        default: 'TopCar - Премиум Аренда Авто в Алматы | Elite Cars Rental',
+    },
+    description:
+        'Эксклюзивный автопарк премиум-класса в Алматы: элитные авто, электрокары, luxury cars для туристов. VIP-сервис, трансферы, аренда с водителем и без. Premium car rental, elite vehicles, electric cars for tourists in Almaty.',
+    keywords:
+        'аренда авто Алматы, элитные авто, премиум автомобили, электрокары, для туристов, car rental Almaty, luxury cars, premium vehicles, elite cars, electric cars, VIP service, трансфер аэропорт',
+    manifest: '/manifest.json',
+    icons: {
+        icon: '/favicon.ico',
+        apple: '/apple-touch-icon.png',
+    },
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'black-translucent',
+        title: 'TopCar Almaty',
+    },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0a0a0a',
-  colorScheme: 'dark',
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
+    themeColor: '#0a0a0a',
+    colorScheme: 'dark',
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  return (
-    <html lang="ru" className={manrope.className}>
-      <head>
-        {/* --- Google tag (gtag.js) --- */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-RN8FMGTC04"
-          strategy="beforeInteractive"
-        />
-        <Script id="ga4-init" strategy="beforeInteractive">
-          {`
+    return (
+        <html lang="ru" className={manrope.className}>
+            <head>
+                {/* --- Google tag (gtag.js) --- */}
+                <Script
+                    src="https://www.googletagmanager.com/gtag/js?id=G-RN8FMGTC04"
+                    strategy="beforeInteractive"
+                />
+                <Script id="ga4-init" strategy="beforeInteractive">
+                    {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
 
             gtag('config', 'G-RN8FMGTC04');
           `}
-        </Script>
-        {/* --- End Google tag (gtag.js) --- */}
+                </Script>
+                {/* --- End Google tag (gtag.js) --- */}
 
-        {/* --- SEO: alternate, canonical, language redirect --- */}
-        <link rel="alternate" href="https://topcar.club/" hrefLang="ru" />
-        <link rel="alternate" href="https://topcar.club/en/" hrefLang="en" />
-        <link rel="alternate" href="https://topcar.club/kk/" hrefLang="kk" />
-        <link rel="canonical" href="https://topcar.club/" />
-        <Script id="lang-redirect" strategy="afterInteractive">
-          {`
+                {/* --- SEO: alternate, canonical, language redirect --- */}
+                <link
+                    rel="alternate"
+                    href="https://topcar.club/"
+                    hrefLang="ru"
+                />
+                <link
+                    rel="alternate"
+                    href="https://topcar.club/en/"
+                    hrefLang="en"
+                />
+                <link
+                    rel="alternate"
+                    href="https://topcar.club/kk/"
+                    hrefLang="kk"
+                />
+                <link rel="canonical" href="https://topcar.club/" />
+                <Script id="lang-redirect" strategy="afterInteractive">
+                    {`
             document.addEventListener("DOMContentLoaded", function() {
               var userLang = navigator.language || navigator.userLanguage;
               if (userLang.startsWith("en")) {
@@ -80,20 +94,17 @@ export default function RootLayout({
               }
             });
           `}
-        </Script>
-        {/* --- END SEO --- */}
-      </head>
-      <body className="bg-background text-foreground">
+                </Script>
+                {/* --- END SEO --- */}
+            </head>
+            <body className="bg-background text-foreground">
+                <LocaleProvider locale="ru">
+                    <AuthProvider>{children}</AuthProvider>
+                </LocaleProvider>
 
-        <LocaleProvider locale="ru">
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </LocaleProvider>
-
-        {/* --- WhatsApp Widget (Waplus) --- */}
-        <Script id="whatsapp-widget" strategy="afterInteractive">
-          {`
+                {/* --- WhatsApp Widget (Waplus) --- */}
+                <Script id="whatsapp-widget" strategy="afterInteractive">
+                    {`
             (function(){
               var url = 'https://cdn.waplus.io/waplus-crm/settings/ossembed.js';
               var s = document.createElement('script');
@@ -173,9 +184,9 @@ export default function RootLayout({
               x.parentNode && x.parentNode.insertBefore(s, x);
             })();
           `}
-        </Script>
-        {/* --- END WhatsApp Widget (Waplus) --- */}
-      </body>
-    </html>
-  );
+                </Script>
+                {/* --- END WhatsApp Widget (Waplus) --- */}
+            </body>
+        </html>
+    );
 }

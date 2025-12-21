@@ -2,13 +2,9 @@ import { ReactNode } from 'react';
 import { LocaleProvider } from '@/context/LocaleContext';
 
 interface EnLayoutProps {
-  children: ReactNode;
+    children: ReactNode;
 }
 
 export default function EnLayout({ children }: EnLayoutProps) {
-  return (
-    <LocaleProvider locale="en">
-      {children}
-    </LocaleProvider>
-  );
+    return <LocaleProvider locale="en">{children}</LocaleProvider>;
 }

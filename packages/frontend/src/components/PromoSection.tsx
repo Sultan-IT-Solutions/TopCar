@@ -26,13 +26,16 @@ const PromoSection = () => {
             // if (!response.ok) throw new Error('Не удалось подписаться.');
 
             // Имитация задержки сети
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
             console.log('Подписка на промокоды для email:', email);
             setMessage('Спасибо! Мы выслали промокод на вашу почту.');
             setEmail('');
-        } catch (err: unknown) { // ИЗМЕНЕНИЕ ЗДЕСЬ
-            setError((err as Error).message || 'Произошла ошибка, попробуйте снова.');
+        } catch (err: unknown) {
+            // ИЗМЕНЕНИЕ ЗДЕСЬ
+            setError(
+                (err as Error).message || 'Произошла ошибка, попробуйте снова.',
+            );
         } finally {
             setLoading(false);
         }
@@ -40,7 +43,7 @@ const PromoSection = () => {
 
     return (
         <section className="bg-gradient-to-t from-background to-neutral-900 py-20">
-            <motion.div 
+            <motion.div
                 className="container mx-auto px-4 text-center"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -48,13 +51,20 @@ const PromoSection = () => {
                 transition={{ duration: 0.6 }}
             >
                 <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                    Получите <span className="text-brand-accent">Скидку 15%</span> на Первую Поездку
+                    Получите{' '}
+                    <span className="text-brand-accent">Скидку 15%</span> на
+                    Первую Поездку
                 </h2>
                 <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
-                    Подпишитесь на нашу рассылку и получите эксклюзивный промокод. Будьте в курсе наших лучших предложений и новостей.
+                    Подпишитесь на нашу рассылку и получите эксклюзивный
+                    промокод. Будьте в курсе наших лучших предложений и
+                    новостей.
                 </p>
-                
-                <form onSubmit={handleSubmit} className="max-w-md mx-auto flex flex-col sm:flex-row gap-4">
+
+                <form
+                    onSubmit={handleSubmit}
+                    className="max-w-md mx-auto flex flex-col sm:flex-row gap-4"
+                >
                     <input
                         type="email"
                         value={email}
@@ -64,7 +74,7 @@ const PromoSection = () => {
                         disabled={loading}
                         className="flex-grow px-4 py-3 rounded-lg bg-neutral-800 border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-accent"
                     />
-                    <button 
+                    <button
                         type="submit"
                         disabled={loading}
                         className="px-6 py-3 rounded-lg bg-brand-accent text-background font-semibold hover:bg-brand-accent-hover transition-colors disabled:opacity-50"

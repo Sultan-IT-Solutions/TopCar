@@ -7,12 +7,12 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import {
-  UserCircleIcon,
-  PhoneIcon as PhoneSolidIcon,
-  EnvelopeIcon as EnvelopeSolidIcon,
-  ArrowRightOnRectangleIcon,
-  ArrowPathIcon,
-  CalculatorIcon
+    UserCircleIcon,
+    PhoneIcon as PhoneSolidIcon,
+    EnvelopeIcon as EnvelopeSolidIcon,
+    ArrowRightOnRectangleIcon,
+    ArrowPathIcon,
+    CalculatorIcon,
 } from '@heroicons/react/24/outline';
 import { getSupabase } from '@/lib/supabase';
 import FormattedPrice from '@/components/FormattedPrice';
@@ -26,7 +26,7 @@ type SavedCalculation = {
     duration: string;
     price: number;
     created_at: string;
-}
+};
 
 function SavedCalculations() {
     const [calculations, setCalculations] = useState<SavedCalculation[]>([]);
@@ -50,39 +50,58 @@ function SavedCalculations() {
     }, []);
 
     if (loading) {
-        return <div className="text-center p-8"><ArrowPathIcon className="h-6 w-6 animate-spin mx-auto text-muted-foreground"/></div>;
+        return (
+            <div className="text-center p-8">
+                <ArrowPathIcon className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+            </div>
+        );
     }
 
     return (
         <section>
             <div className="flex items-center mb-6">
                 <CalculatorIcon className="h-8 w-8 text-[#d4af37] mr-3 shrink-0" />
-                <h2 className="text-2xl font-bold text-white">Сохраненные расчеты</h2>
+                <h2 className="text-2xl font-bold text-white">
+                    Сохраненные расчеты
+                </h2>
             </div>
             {calculations.length > 0 ? (
                 <div className="space-y-4">
-                    {calculations.map(calc => (
-                        <div key={calc.id} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+                    {calculations.map((calc) => (
+                        <div
+                            key={calc.id}
+                            className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5"
+                        >
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="font-semibold text-white">{calc.car_name}</p>
-                                    <p className="text-sm text-neutral-400">{calc.service_type} ({calc.duration})</p>
+                                    <p className="font-semibold text-white">
+                                        {calc.car_name}
+                                    </p>
+                                    <p className="text-sm text-neutral-400">
+                                        {calc.service_type} ({calc.duration})
+                                    </p>
                                 </div>
-                                <p className="text-lg font-bold text-[#d4af37]"><FormattedPrice value={calc.price}/> ₸</p>
+                                <p className="text-lg font-bold text-[#d4af37]">
+                                    <FormattedPrice value={calc.price} /> ₸
+                                </p>
                             </div>
                             <p className="text-xs text-neutral-500 mt-2 text-right">
-                                {new Date(calc.created_at).toLocaleDateString('ru-RU')}
+                                {new Date(calc.created_at).toLocaleDateString(
+                                    'ru-RU',
+                                )}
                             </p>
                         </div>
                     ))}
                 </div>
             ) : (
                 <div className="text-center py-10 px-6 bg-neutral-900 border border-dashed border-neutral-700 rounded-2xl">
-                    <p className="text-neutral-400">У вас пока нет сохраненных расчетов.</p>
+                    <p className="text-neutral-400">
+                        У вас пока нет сохраненных расчетов.
+                    </p>
                 </div>
             )}
         </section>
-    )
+    );
 }
 
 // --- ОСНОВНОЙ КОМПОНЕНТ СТРАНИЦЫ ---
@@ -118,40 +137,53 @@ export default function DashboardPage() {
                     <section>
                         <div className="flex items-center mb-6">
                             <UserCircleIcon className="h-8 w-8 text-[#d4af37] mr-3 shrink-0" />
-                            <h1 className="text-2xl font-bold text-white">Ваш профиль</h1>
+                            <h1 className="text-2xl font-bold text-white">
+                                Ваш профиль
+                            </h1>
                             {/* Кнопка выхода теперь использует функцию из контекста */}
-                            <button 
-                                onClick={signOut} 
-                                title="Выйти" 
+                            <button
+                                onClick={signOut}
+                                title="Выйти"
                                 className="ml-auto p-2 text-neutral-500 hover:text-red-400 transition-colors rounded-full hover:bg-neutral-800"
                             >
-                                <ArrowRightOnRectangleIcon className="h-6 w-6"/>
+                                <ArrowRightOnRectangleIcon className="h-6 w-6" />
                             </button>
                         </div>
                         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-4">
                             {/* Данные берем из объекта user, полученного от Supabase */}
                             <div className="flex items-center">
                                 <UserCircleIcon className="h-5 w-5 text-neutral-500 mr-4 shrink-0" />
-                                <span className="text-sm text-neutral-400">Имя:</span>
-                                <span className="ml-auto font-medium text-white text-right">{user.user_metadata.name || 'Не указано'}</span>
+                                <span className="text-sm text-neutral-400">
+                                    Имя:
+                                </span>
+                                <span className="ml-auto font-medium text-white text-right">
+                                    {user.user_metadata.name || 'Не указано'}
+                                </span>
                             </div>
                             <div className="flex items-center">
                                 <PhoneSolidIcon className="h-5 w-5 text-neutral-500 mr-4 shrink-0" />
-                                <span className="text-sm text-neutral-400">Телефон:</span>
-                                <span className="ml-auto font-medium text-white">{user.user_metadata.phone || 'Не указан'}</span>
+                                <span className="text-sm text-neutral-400">
+                                    Телефон:
+                                </span>
+                                <span className="ml-auto font-medium text-white">
+                                    {user.user_metadata.phone || 'Не указан'}
+                                </span>
                             </div>
                             <div className="flex items-center">
                                 <EnvelopeSolidIcon className="h-5 w-5 text-neutral-500 mr-4 shrink-0" />
-                                <span className="text-sm text-neutral-400">Email:</span>
-                                <span className="ml-auto font-medium text-white text-right">{user.email || 'Не указан'}</span>
+                                <span className="text-sm text-neutral-400">
+                                    Email:
+                                </span>
+                                <span className="ml-auto font-medium text-white text-right">
+                                    {user.email || 'Не указан'}
+                                </span>
                             </div>
                         </div>
                     </section>
 
                     <SavedCalculations />
-                    
-                    {/* <UserPromoCodes /> */}
 
+                    {/* <UserPromoCodes /> */}
                 </div>
             </main>
             <Footer />

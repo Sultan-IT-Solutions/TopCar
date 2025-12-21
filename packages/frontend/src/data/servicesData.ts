@@ -1,18 +1,18 @@
 // /data/servicesData.ts
 
 export type ServiceDataType = {
-  slug: string;
-  title: string;
-  shortDescription: string;
-  fullDescriptionHtml: string;
+    slug: string;
+    title: string;
+    shortDescription: string;
+    fullDescriptionHtml: string;
 };
 
 export const servicesData: ServiceDataType[] = [
-  {
-    slug: "long-term-rental",
-    title: "Долгосрочная аренда",
-    shortDescription: "Экономия при аренде на 1+ месяц.",
-    fullDescriptionHtml: `
+    {
+        slug: 'long-term-rental',
+        title: 'Долгосрочная аренда',
+        shortDescription: 'Экономия при аренде на 1+ месяц.',
+        fullDescriptionHtml: `
       <h2>Ваш личный автомобиль без обязательств</h2>
       <p>Наша услуга долгосрочной аренды — это идеальное решение для тех, кому автомобиль нужен на длительный срок, но без забот, связанных с его владением. Получите все преимущества личного транспорта: свободу передвижения, комфорт и престиж, оставив обслуживание, страхование и налоги нам.</p>
       <h3>Преимущества:</h3>
@@ -22,12 +22,12 @@ export const servicesData: ServiceDataType[] = [
         <li><strong>Подменный автомобиль:</strong> В случае поломки мы предоставим вам автомобиль аналогичного класса.</li>
       </ul>
     `,
-  },
-  {
-    slug: "airport-transfer",
-    title: "Трансфер в/из аэропорта",
-    shortDescription: "Премиум трансфер до/из аэропорта.",
-    fullDescriptionHtml: `
+    },
+    {
+        slug: 'airport-transfer',
+        title: 'Трансфер в/из аэропорта',
+        shortDescription: 'Премиум трансфер до/из аэропорта.',
+        fullDescriptionHtml: `
       <h2>Начните или завершите путешествие с комфортом</h2>
       <p>Забудьте о стрессе, связанном с поиском такси или общественным транспортом. Наш профессиональный водитель встретит вас с табличкой в аэропорту, поможет с багажом и с комфортом доставит в любую точку города на автомобиле премиум-класса.</p>
       <h3>Что включено:</h3>
@@ -38,6 +38,6 @@ export const servicesData: ServiceDataType[] = [
         <li>Ожидание в случае задержки рейса.</li>
       </ul>
     `,
-  },
-  // Добавьте здесь другие услуги по аналогии
+    },
+    // Добавьте здесь другие услуги по аналогии
 ];

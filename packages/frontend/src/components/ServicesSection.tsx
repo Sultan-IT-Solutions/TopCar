@@ -1,13 +1,13 @@
 // src/components/ServicesSection.tsx
-'use client'
+'use client';
 
 import { motion } from 'framer-motion';
 import Link from 'next/link'; // Импортируем Link
 import {
-  UserGroupIcon,
-  GlobeAltIcon,
-  CalendarDaysIcon,
-  ShieldCheckIcon
+    UserGroupIcon,
+    GlobeAltIcon,
+    CalendarDaysIcon,
+    ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { useTranslations } from '@/lib/i18n';
 
@@ -52,14 +52,21 @@ const ServicesSection = () => {
                             viewport={{ once: true, amount: 0.5 }}
                             transition={{ duration: 0.5, delay: index * 0.1 }}
                         >
-                          {/* Оборачиваем карточку в Link */}
-                          <Link href={`/${service.slug}`} className="block h-full">
-                            <div className="bg-neutral-900 p-8 rounded-2xl border border-neutral-800 hover:border-[#d4af37] transition-colors duration-300 shadow-lg h-full flex flex-col">
-                                <service.icon className="h-10 w-10 text-[#d4af37] mb-6 flex-shrink-0" />
-                                <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
-                                <p className="text-neutral-400 text-sm leading-relaxed mt-auto">{service.description}</p>
-                            </div>
-                          </Link>
+                            {/* Оборачиваем карточку в Link */}
+                            <Link
+                                href={`/${service.slug}`}
+                                className="block h-full"
+                            >
+                                <div className="bg-neutral-900 p-8 rounded-2xl border border-neutral-800 hover:border-[#d4af37] transition-colors duration-300 shadow-lg h-full flex flex-col">
+                                    <service.icon className="h-10 w-10 text-[#d4af37] mb-6 flex-shrink-0" />
+                                    <h3 className="text-xl font-bold text-white mb-3">
+                                        {service.title}
+                                    </h3>
+                                    <p className="text-neutral-400 text-sm leading-relaxed mt-auto">
+                                        {service.description}
+                                    </p>
+                                </div>
+                            </Link>
                         </motion.div>
                     ))}
                 </div>

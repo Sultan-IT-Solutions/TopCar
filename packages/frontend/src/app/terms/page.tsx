@@ -1,18 +1,18 @@
-'use client'
+'use client';
 
 // `useState` and `LoginModal` are no longer needed here
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import AnimatedPageWrapper from '@/components/AnimatedPageWrapper'
-import FadeInWhenVisible from '@/components/FadeInWhenVisible'
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
+import FadeInWhenVisible from '@/components/FadeInWhenVisible';
 import {
-  ShieldCheckIcon,
-  CurrencyDollarIcon,
-  IdentificationIcon,
-  NoSymbolIcon,
-  MapPinIcon,
-  ExclamationTriangleIcon,
-} from '@heroicons/react/24/outline'
+    ShieldCheckIcon,
+    CurrencyDollarIcon,
+    IdentificationIcon,
+    NoSymbolIcon,
+    MapPinIcon,
+    ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
 
 const terms = [
     {
@@ -50,7 +50,7 @@ const terms = [
             'Выезд в другие регионы Казахстана возможен по предварительному согласованию.',
         ],
     },
-     {
+    {
         Icon: ShieldCheckIcon,
         title: 'Страхование',
         points: [
@@ -68,7 +68,6 @@ const terms = [
     },
 ];
 
-
 export default function TermsPage() {
     // The state for the login modal has been removed
     // const [showLoginModal, setShowLoginModal] = useState(false);
@@ -85,10 +84,13 @@ export default function TermsPage() {
                     <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
                         <FadeInWhenVisible>
                             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white">
-                                Условия <span className="text-[#d4af37]">Аренды</span>
+                                Условия{' '}
+                                <span className="text-[#d4af37]">Аренды</span>
                             </h1>
                             <p className="mt-5 sm:mt-6 text-lg sm:text-xl text-neutral-300 max-w-2xl mx-auto leading-relaxed">
-                                Прозрачные и понятные условия для вашего спокойствия и комфортного пользования нашими автомобилями.
+                                Прозрачные и понятные условия для вашего
+                                спокойствия и комфортного пользования нашими
+                                автомобилями.
                             </p>
                         </FadeInWhenVisible>
                     </div>
@@ -97,11 +99,13 @@ export default function TermsPage() {
                 <section className="py-16 sm:py-24 px-4 sm:px-6">
                     <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
                         {terms.map((term, idx) => (
-                             <FadeInWhenVisible key={idx} delay={idx * 0.1}>
+                            <FadeInWhenVisible key={idx} delay={idx * 0.1}>
                                 <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 h-full">
                                     <div className="flex items-center gap-4 mb-5">
                                         <term.Icon className="h-8 w-8 text-[#d4af37]" />
-                                        <h2 className="text-2xl font-bold text-white">{term.title}</h2>
+                                        <h2 className="text-2xl font-bold text-white">
+                                            {term.title}
+                                        </h2>
                                     </div>
                                     <ul className="space-y-2.5 text-neutral-300 list-disc list-inside">
                                         {term.points.map((point, pIdx) => (
@@ -109,7 +113,7 @@ export default function TermsPage() {
                                         ))}
                                     </ul>
                                 </div>
-                             </FadeInWhenVisible>
+                            </FadeInWhenVisible>
                         ))}
                     </div>
                 </section>
@@ -117,5 +121,5 @@ export default function TermsPage() {
 
             <Footer />
         </AnimatedPageWrapper>
-    )
+    );
 }

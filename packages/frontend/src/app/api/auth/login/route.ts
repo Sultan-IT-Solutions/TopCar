@@ -15,23 +15,29 @@ export async function POST(request: Request) {
         });
 
         if (error) {
-            return NextResponse.json({ message: error.message }, { status: 401 });
+            return NextResponse.json(
+                { message: error.message },
+                { status: 401 },
+            );
         }
 
         // Удалена неиспользуемая переменная
         const { user } = data;
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             message: 'Вход выполнен успешно',
             user: {
                 id: user.id,
                 email: user.email,
                 name: user.user_metadata.name,
                 phone: user.user_metadata.phone,
-            }
+            },
         });
-
-    } catch (err: unknown) { // ИСПРАВЛЕНО
-        return NextResponse.json({ message: (err as Error).message }, { status: 500 });
+    } catch (err: unknown) {
+        // ИСПРАВЛЕНО
+        return NextResponse.json(
+            { message: (err as Error).message },
+            { status: 500 },
+        );
     }
 }

@@ -19,9 +19,12 @@ export async function POST(request: Request) {
         if (userError) throw userError;
 
         if (users && users.length > 0) {
-            return NextResponse.json({ message: 'Пользователь с таким email уже существует' }, { status: 409 });
+            return NextResponse.json(
+                { message: 'Пользователь с таким email уже существует' },
+                { status: 409 },
+            );
         }
-        
+
         // Регистрируем нового пользователя
         const { data, error } = await supabase.auth.signUp({
             email,
@@ -35,19 +38,28 @@ export async function POST(request: Request) {
         });
 
         if (error) {
-            return NextResponse.json({ message: error.message }, { status: 400 });
+            return NextResponse.json(
+                { message: error.message },
+                { status: 400 },
+            );
         }
 
         if (data.user) {
             return NextResponse.json({
-                message: 'Регистрация прошла успешно. Пожалуйста, подтвердите ваш email.',
+                message:
+                    'Регистрация прошла успешно. Пожалуйста, подтвердите ваш email.',
                 user: data.user,
             });
         }
-        
-        return NextResponse.json({ message: 'Произошла неизвестная ошибка' }, { status: 500 });
 
+        return NextResponse.json(
+            { message: 'Произошла неизвестная ошибка' },
+            { status: 500 },
+        );
     } catch (err: unknown) {
-        return NextResponse.json({ message: (err as Error).message }, { status: 500 });
+        return NextResponse.json(
+            { message: (err as Error).message },
+            { status: 500 },
+        );
     }
 }

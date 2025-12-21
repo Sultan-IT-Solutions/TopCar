@@ -27,14 +27,17 @@ const UserPromoCodes = () => {
             // if (!response.ok) throw new Error(data.message);
 
             // Имитация задержки и ответа
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000));
             if (promoCode.toUpperCase() === 'SALE15') {
-                setMessage('Промокод "SALE15" успешно применен! Скидка 15% добавлена к вашему аккаунту.');
+                setMessage(
+                    'Промокод "SALE15" успешно применен! Скидка 15% добавлена к вашему аккаунту.',
+                );
             } else {
                 throw new Error('Неверный или истекший промокод.');
             }
             setPromoCode('');
-        } catch (err: unknown) { // ИЗМЕНЕНИЕ ЗДЕСЬ
+        } catch (err: unknown) {
+            // ИЗМЕНЕНИЕ ЗДЕСЬ
             setError((err as Error).message || 'Произошла ошибка.');
         } finally {
             setLoading(false);
@@ -49,10 +52,14 @@ const UserPromoCodes = () => {
             </div>
             <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8">
                 <p className="text-sm text-neutral-400 mb-4">
-                    Введите промокод, чтобы получить скидку на следующие поездки.
+                    Введите промокод, чтобы получить скидку на следующие
+                    поездки.
                 </p>
-                <form onSubmit={handleApplyPromoCode} className="flex flex-col sm:flex-row gap-4">
-                    <input 
+                <form
+                    onSubmit={handleApplyPromoCode}
+                    className="flex flex-col sm:flex-row gap-4"
+                >
+                    <input
                         type="text"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
@@ -65,7 +72,9 @@ const UserPromoCodes = () => {
                         disabled={loading || !promoCode}
                         className="px-6 py-3 rounded-lg bg-[#d4af37] text-background font-semibold hover:bg-[#c0982c] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        {loading && <Loader2 size={18} className="animate-spin" />}
+                        {loading && (
+                            <Loader2 size={18} className="animate-spin" />
+                        )}
                         Применить
                     </button>
                 </form>

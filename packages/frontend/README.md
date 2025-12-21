@@ -27,15 +27,18 @@ npm run lint
 ## 🔒 Реализованные улучшения безопасности
 
 ### ✅ Задача #3: Phone Formatting Bug
+
 **Файл:** `src/lib/formatters.ts`
 
 Реализована корректная обработка номеров телефонов:
+
 - Функция `formatPhoneToE164()` - конвертация в международный формат E.164
 - Поддержка различных входных форматов (8-777-xxx, +7-777-xxx, и т.д.)
 - Валидация номеров через `isValidPhone()`
 - Unit тесты в `__tests__/formatters.test.ts`
 
 **Пример использования:**
+
 ```typescript
 import { formatPhoneToE164 } from '@/lib/formatters';
 
@@ -46,30 +49,35 @@ const formatted = formatPhoneToE164('8 (777) 123-45-67');
 ---
 
 ### ✅ Задача #6: Validate Inputs with Zod
+
 **Файл:** `src/lib/validation.ts`
 
 Комплексная валидация данных на сервере и клиенте:
+
 - Схемы для email, телефона, имени, промокода
 - Схемы для бронирования, регистрации, логина
 - Helper функции `validateData()` и `formatZodErrors()`
 - Type-safe валидация с автоматическим выводом типов
 
 **Пример использования:**
+
 ```typescript
 import { bookingSchema, validateData } from '@/lib/validation';
 
 const result = validateData(bookingSchema, formData);
 if (!result.success) {
-  console.error(result.errors);
+    console.error(result.errors);
 }
 ```
 
 ---
 
 ### ✅ Задача #8: Fix Race Conditions in AuthContext
+
 **Файл:** `src/context/AuthContext.tsx`
 
 Защита от состояния гонки при аутентификации:
+
 - Использование `useRef` для отслеживания монтирования компонента
 - Предотвращение параллельных загрузок сессии
 - Безопасная очистка при размонтировании
@@ -78,32 +86,34 @@ if (!result.success) {
 ---
 
 ### ✅ Задача #9: Rate Limiting
+
 **Файл:** `src/lib/rate-limit.ts`
 
 In-memory rate limiting для защиты от bruteforce и DDoS:
+
 - Предустановленные конфигурации (AUTH_STRICT, API_MODERATE, WEBHOOK, и т.д.)
 - Middleware `withRateLimit()` для оборачивания API routes
 - Автоматическая очистка истекших записей
 - Rate limit headers (X-RateLimit-Remaining, X-RateLimit-Reset)
 
 **Пример использования:**
+
 ```typescript
 import { withRateLimit, RateLimitPresets } from '@/lib/rate-limit';
 
-export const POST = withRateLimit(
-  async (request) => {
+export const POST = withRateLimit(async (request) => {
     // Ваш код
-  },
-  RateLimitPresets.API_MODERATE
-);
+}, RateLimitPresets.API_MODERATE);
 ```
 
 ---
 
 ### ✅ Задача #10: Security Logging
+
 **Файл:** `src/lib/security-logger.ts`
 
 Централизованное логирование событий безопасности:
+
 - Логирование auth событий, валидации, rate limit, CSRF, XSS
 - Severity levels (INFO, WARNING, ERROR, CRITICAL)
 - In-memory хранение с ограничением
@@ -111,6 +121,7 @@ export const POST = withRateLimit(
 - Готовность к интеграции с внешними сервисами (Sentry, Datadog)
 
 **Пример использования:**
+
 ```typescript
 import { securityLogger } from '@/lib/security-logger';
 
@@ -121,9 +132,11 @@ securityLogger.logRateLimitExceeded('/api/login', userIp);
 ---
 
 ### ✅ Задача #11: CSRF Protection
+
 **Файл:** `src/lib/csrf.ts`
 
 Защита от Cross-Site Request Forgery:
+
 - Генерация криптографически безопасных токенов
 - Проверка токенов для POST/PUT/DELETE запросов
 - Timing-safe сравнение для защиты от timing attacks
@@ -131,6 +144,7 @@ securityLogger.logRateLimitExceeded('/api/login', userIp);
 - Client helpers для автоматического добавления токенов
 
 **Пример использования:**
+
 ```typescript
 import { csrfProtection } from '@/lib/csrf';
 
@@ -148,9 +162,11 @@ await fetch('/api/endpoint', { method: 'POST', body: data });
 ---
 
 ### ✅ Задача #12: Sanitize HTML
+
 **Файл:** `src/lib/sanitization.ts`
 
 Защита от XSS атак через DOMPurify:
+
 - Санитизация HTML с настраиваемыми конфигурациями
 - `sanitizeText()` - удаление всего HTML
 - `sanitizeRichText()` - для блогов/описаний
@@ -158,6 +174,7 @@ await fetch('/api/endpoint', { method: 'POST', body: data });
 - `sanitizeObject()` - рекурсивная очистка объектов
 
 **Пример использования:**
+
 ```typescript
 import { sanitizeHtml, sanitizeText } from '@/lib/sanitization';
 
@@ -168,9 +185,11 @@ const plainText = sanitizeText(userInput);
 ---
 
 ### ✅ Задача #13: Security Headers
+
 **Файл:** `src/middleware.ts`
 
 Комплексные security headers для защиты приложения:
+
 - **Content-Security-Policy (CSP)** - защита от XSS
 - **Strict-Transport-Security (HSTS)** - только HTTPS
 - **X-Frame-Options** - защита от clickjacking
@@ -180,6 +199,7 @@ const plainText = sanitizeText(userInput);
 - **Permissions-Policy** - контроль доступа к API
 
 **Проверка:**
+
 ```bash
 curl -I http://localhost:3000
 ```
@@ -187,9 +207,11 @@ curl -I http://localhost:3000
 ---
 
 ### ✅ Задача #14: Error Boundaries
+
 **Файл:** `src/components/ErrorBoundary.tsx`
 
 React Error Boundary для graceful error handling:
+
 - Перехват runtime ошибок в React компонентах
 - Логирование ошибок в security logger
 - Пользовательский fallback UI
@@ -197,20 +219,23 @@ React Error Boundary для graceful error handling:
 - Интеграция с внешними сервисами мониторинга
 
 **Пример использования:**
+
 ```tsx
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 <ErrorBoundary>
-  <YourComponent />
-</ErrorBoundary>
+    <YourComponent />
+</ErrorBoundary>;
 ```
 
 ---
 
 ### ✅ Задача #15: Accessibility Improvements
+
 **Файл:** `src/lib/accessibility.ts`
 
 WCAG 2.1 AA compliance utilities:
+
 - Проверка контраста цветов
 - ARIA props builders для компонентов
 - Focus management для модальных окон
@@ -219,6 +244,7 @@ WCAG 2.1 AA compliance utilities:
 - Skip to main content link
 
 **Пример использования:**
+
 ```typescript
 import { ariaProps, trapFocus, announceToScreenReader } from '@/lib/accessibility';
 
@@ -238,9 +264,11 @@ announceToScreenReader('Form submitted successfully', 'polite');
 ---
 
 ### ✅ Задача #16: Performance Optimizations
+
 **Файлы:** `src/lib/performance.ts`, `next.config.ts`
 
 Комплексная оптимизация производительности:
+
 - Image optimization (AVIF, WebP форматы)
 - Lazy loading с Intersection Observer
 - Debounce и throttle функции
@@ -250,6 +278,7 @@ announceToScreenReader('Form submitted successfully', 'polite');
 - Service Worker ready
 
 **Настройки в next.config.ts:**
+
 - Оптимизация изображений (AVIF/WebP)
 - Compression включен
 - Smart code splitting
@@ -258,14 +287,17 @@ announceToScreenReader('Form submitted successfully', 'polite');
 ---
 
 ### ✅ Задача #17: Add Tests
+
 **Директория:** `__tests__/`
 
 Unit тесты для критичных модулей:
+
 - `formatters.test.ts` - тесты форматирования телефонов
 - `validation.test.ts` - тесты Zod схем
 - `rate-limit.test.ts` - тесты rate limiting
 
 **Запуск тестов:**
+
 ```bash
 npm test                 # Разовый запуск
 npm run test:watch       # Watch режим
@@ -277,7 +309,9 @@ npm run test:coverage    # С покрытием кода
 ---
 
 ### ✅ Задача #18: Refactor Duplicated Code
+
 Унификация кода:
+
 - Единая реализация rate-limit в `src/lib/rate-limit.ts`
 - Переиспользуемые утилиты валидации
 - DRY принцип в security helpers
@@ -286,10 +320,13 @@ npm run test:coverage    # С покрытием кода
 ---
 
 ### ✅ Задача #5: Update Vulnerable Dependencies
+
 Обновлены все уязвимые зависимости:
+
 ```bash
 npm audit fix
 ```
+
 **Результат:** 0 уязвимостей
 
 ---
@@ -297,10 +334,12 @@ npm audit fix
 ## 📦 Установленные пакеты
 
 ### Production
+
 - `zod` - Type-safe валидация схем
 - `dompurify` - Санитизация HTML
 
 ### Development
+
 - `jest` - Тестирование
 - `@testing-library/react` - Тестирование React компонентов
 - `@testing-library/jest-dom` - DOM matchers для Jest
@@ -351,19 +390,22 @@ __tests__/
 ## 🧪 Тестирование
 
 ### Запуск тестов
+
 ```bash
 npm test
 ```
 
 ### Проверка security headers
+
 ```bash
 curl -I http://localhost:3000
 ```
 
 ### Проверка rate limiting
+
 ```bash
 # Windows PowerShell
-for ($i=1; $i -le 70; $i++) { 
+for ($i=1; $i -le 70; $i++) {
   Invoke-WebRequest -Uri "http://localhost:3000/api/endpoint" -Method GET
 }
 ```
@@ -375,6 +417,7 @@ for ($i=1; $i -le 70; $i++) {
 ### Версия 1.0.0 (December 2025)
 
 **Security:**
+
 - ✅ Phone formatting в E.164
 - ✅ Zod валидация всех форм
 - ✅ Rate limiting (in-memory)
@@ -386,6 +429,7 @@ for ($i=1; $i -le 70; $i++) {
 - ✅ Race condition fix в AuthContext
 
 **Performance:**
+
 - ✅ Image optimization (AVIF/WebP)
 - ✅ Code splitting
 - ✅ Cache headers
@@ -393,6 +437,7 @@ for ($i=1; $i -le 70; $i++) {
 - ✅ Debounce/throttle
 
 **Accessibility:**
+
 - ✅ WCAG 2.1 AA utilities
 - ✅ ARIA props helpers
 - ✅ Focus management
@@ -400,11 +445,13 @@ for ($i=1; $i -le 70; $i++) {
 - ✅ Screen reader support
 
 **Testing:**
+
 - ✅ Jest configuration
 - ✅ Unit tests для критичных модулей
 - ✅ Test coverage setup
 
 **Dependencies:**
+
 - ✅ Обновлены все уязвимые пакеты
 - ✅ 0 vulnerabilities
 

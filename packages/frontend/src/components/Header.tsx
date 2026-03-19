@@ -2,8 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import clsx from 'clsx';
@@ -15,6 +13,7 @@ import MobileActionButton from '@/components/MobileActionButton';
 import LoginModal from './LoginModal';
 import CalculatorModal from './CalculatorModal';
 import LanguageSwitcher from './LanguageSwitcher';
+import LocalizedLink from '@/components/LocalizedLink';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useTranslations } from '@/lib/i18n';
 import {
@@ -127,34 +126,57 @@ export default function Header() {
         [handleAction, signOut],
     );
 
-    // navItems теперь вычисляется на каждом рендере
     const navItems = [
-        { href: '/autopark', label: t('nav.autopark') },
-        { href: '/services', label: t('nav.services') },
-        { href: '/contacts', label: t('nav.contacts') },
-        { href: '/terms', label: t('nav.terms') },
+        {
+            href: '/',
+            label: t('nav.home'),
+            description: t('nav.homeHint'),
+        },
+        {
+            href: '/autopark',
+            label: t('nav.autopark'),
+            description: t('nav.autoparkHint'),
+        },
+        {
+            href: '/services',
+            label: t('nav.services'),
+            description: t('nav.servicesHint'),
+        },
+        {
+            href: '/security',
+            label: t('nav.security'),
+            description: t('nav.securityHint'),
+        },
+        {
+            href: '/contacts',
+            label: t('nav.contacts'),
+            description: t('nav.contactsHint'),
+        },
+        {
+            href: '/terms',
+            label: t('nav.terms'),
+            description: t('nav.termsHint'),
+        },
     ];
 
     if (!isMounted) {
         return (
             <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 border-b border-border h-20 flex items-center">
                 <div className="container mx-auto px-4 flex justify-between items-center h-20 relative">
-                    <Link
+                    <LocalizedLink
                         href="/"
-                        className="flex items-center gap-2"
+                        className="flex items-center"
                         aria-label="TopCar Home"
                     >
-                        <Image
-                            src="/logo.png"
-                            alt="TopCar Logo"
-                            width={40}
-                            height={40}
-                            priority
-                        />
-                        <span className="text-2xl font-bold text-foreground">
-                            TOPCAR
-                        </span>
-                    </Link>
+                        <div className="flex flex-col">
+                            <span className="text-2xl font-bold tracking-[0.35em] text-white">
+                                TOPCAR
+                            </span>
+                            <span className="text-[10px] uppercase tracking-[0.28em] text-neutral-400">
+                                Premium Rent Club
+                            </span>
+                        </div>
+                    </LocalizedLink>
                     <div className="flex items-center gap-2">
                         <LanguageSwitcher />
                     </div>
@@ -174,23 +196,21 @@ export default function Header() {
                 )}
             >
                 <div className="container mx-auto px-4 flex justify-between items-center h-20 relative">
-                    <Link
+                    <LocalizedLink
                         href="/"
-                        className="flex items-center gap-2"
+                        className="flex items-center"
                         aria-label="TopCar Home"
                     >
-                        <Image
-                            src="/logo.png"
-                            alt="TopCar Logo"
-                            width={40}
-                            height={40}
-                            priority
-                        />
-                        <span className="text-2xl font-bold text-foreground">
-                            TOPCAR
-                        </span>
-                    </Link>
-                    <nav className="hidden lg:flex items-center gap-8">
+                        <div className="flex flex-col">
+                            <span className="text-2xl font-bold tracking-[0.35em] text-white">
+                                TOPCAR
+                            </span>
+                            <span className="text-[10px] uppercase tracking-[0.28em] text-neutral-400">
+                                Premium Rent Club
+                            </span>
+                        </div>
+                    </LocalizedLink>
+                    <nav className="hidden lg:flex items-center gap-6">
                         {navItems.map((item) => (
                             <NavLink
                                 key={item.href}
@@ -202,14 +222,59 @@ export default function Header() {
                         ))}
                     </nav>
                     <div className="flex items-center gap-2">
-                        {/* LanguageSwitcher теперь всегда рядом с бургер-меню */}
-                        <div className="flex items-center lg:hidden">
+                        <div className="flex items-center gap-1 lg:hidden">
+                            <NavButton
+                                onClick={() => setShowCalcModal(true)}
+                                title={t('nav.calculator')}
+                                description={t('nav.calculatorHint')}
+                                ariaLabel={t('nav.calculator')}
+                            >
+                                <Calculator size={20} />
+                            </NavButton>
+                            {isMounted && !isLoading ? (
+                                user ? (
+                                    <NavButton
+                                        href="/dashboard"
+                                        title={t('nav.dashboard')}
+                                        description={t('nav.dashboardHint')}
+                                        ariaLabel={t('nav.dashboard')}
+                                    >
+                                        <User size={20} />
+                                    </NavButton>
+                                ) : (
+                                    <NavButton
+                                        onClick={() => setShowLoginModal(true)}
+                                        title={t('nav.login')}
+                                        description={t('nav.loginHint')}
+                                        ariaLabel={t('nav.login')}
+                                    >
+                                        <User size={20} />
+                                    </NavButton>
+                                )
+                            ) : (
+                                <div className="p-2 w-[40px] h-[40px] flex justify-center items-center">
+                                    <Loader2
+                                        size={18}
+                                        className="animate-spin text-muted-foreground"
+                                    />
+                                </div>
+                            )}
+                            <NavButton
+                                href="/download"
+                                title={t('nav.download')}
+                                description={t('nav.downloadHint')}
+                                ariaLabel={t('nav.download')}
+                            >
+                                <Download size={20} />
+                            </NavButton>
                             <LanguageSwitcher />
                         </div>
                         <div className="hidden lg:flex items-center gap-2">
                             <NavButton
                                 onClick={() => setShowCalcModal(true)}
                                 title={t('nav.calculator')}
+                                description={t('nav.calculatorHint')}
+                                ariaLabel={t('nav.calculator')}
                             >
                                 <Calculator size={22} />
                             </NavButton>
@@ -219,12 +284,16 @@ export default function Header() {
                                         <NavButton
                                             href="/dashboard"
                                             title={t('nav.dashboard')}
+                                            description={t('nav.dashboardHint')}
+                                            ariaLabel={t('nav.dashboard')}
                                         >
                                             <User size={22} />
                                         </NavButton>
                                         <NavButton
                                             onClick={signOut}
                                             title={t('nav.logout')}
+                                            description={t('nav.logoutHint')}
+                                            ariaLabel={t('nav.logout')}
                                         >
                                             <LogOut size={22} />
                                         </NavButton>
@@ -233,6 +302,8 @@ export default function Header() {
                                     <NavButton
                                         onClick={() => setShowLoginModal(true)}
                                         title={t('nav.login')}
+                                        description={t('nav.loginHint')}
+                                        ariaLabel={t('nav.login')}
                                     >
                                         <User size={22} />
                                     </NavButton>
@@ -248,6 +319,8 @@ export default function Header() {
                             <NavButton
                                 href="/download"
                                 title={t('nav.download')}
+                                description={t('nav.downloadHint')}
+                                ariaLabel={t('nav.download')}
                             >
                                 <Download size={22} />
                             </NavButton>
@@ -316,7 +389,12 @@ export default function Header() {
                                             currentPath={pathname}
                                             onClick={toggleMenu}
                                         >
-                                            {item.label}
+                                            <span className="flex flex-col">
+                                                <span>{item.label}</span>
+                                                <span className="text-xs font-normal text-neutral-500">
+                                                    {item.description}
+                                                </span>
+                                            </span>
                                         </MobileNavLink>
                                     </motion.div>
                                 ))}
@@ -370,7 +448,12 @@ export default function Header() {
                                             onClick={handleLogin}
                                         >
                                             <User size={20} />
-                                            <span>{t('nav.login')}</span>
+                                            <span className="flex flex-col text-left">
+                                                <span>{t('nav.login')}</span>
+                                                <span className="text-xs font-normal text-neutral-500">
+                                                    {t('nav.loginHint')}
+                                                </span>
+                                            </span>
                                         </MobileActionButton>
                                     </motion.div>
                                 )}
@@ -382,7 +465,12 @@ export default function Header() {
                                 <motion.div variants={menuItemVariants}>
                                     <MobileActionButton onClick={openCalcModal}>
                                         <Calculator size={20} />
-                                        <span>{t('nav.calculator')}</span>
+                                        <span className="flex flex-col text-left">
+                                            <span>{t('nav.calculator')}</span>
+                                            <span className="text-xs font-normal text-neutral-500">
+                                                {t('nav.calculatorHint')}
+                                            </span>
+                                        </span>
                                     </MobileActionButton>
                                 </motion.div>
                                 <motion.div variants={menuItemVariants}>
@@ -392,14 +480,14 @@ export default function Header() {
                                         onClick={toggleMenu}
                                     >
                                         <Download size={20} />
-                                        <span>{t('nav.download')}</span>
+                                        <span className="flex flex-col text-left">
+                                            <span>{t('nav.download')}</span>
+                                            <span className="text-xs font-normal text-neutral-500">
+                                                {t('nav.downloadHint')}
+                                            </span>
+                                        </span>
                                     </MobileNavLink>
                                 </motion.div>
-                            </div>
-
-                            {/* Добавляем LanguageSwitcher для мобильного меню */}
-                            <div className="mt-6 mb-2 flex justify-center">
-                                <LanguageSwitcher />
                             </div>
 
                             <motion.div

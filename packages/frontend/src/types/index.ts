@@ -36,6 +36,9 @@ export type Car = {
     drive_type?: string;
     seats?: number;
     year?: number;
+    is_available?: boolean;
+    available?: boolean;
+    status?: string | { available?: boolean; isNew?: boolean };
 };
 
 /**

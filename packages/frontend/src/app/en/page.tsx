@@ -1,35 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import Header from '@/components/Header';
+import HomeCarCatalogSection from '@/components/HomeCarCatalogSection';
 import ServicesSection from '@/components/ServicesSection';
 import FAQ from '@/components/FAQ';
 import Subscription from '@/components/Subscription';
 import Footer from '@/components/Footer';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
-import LoginModal from '@/components/LoginModal';
-import {
-    ArrowRightIcon,
-    UserCircleIcon,
-    ChatBubbleLeftRightIcon,
-} from '@heroicons/react/24/outline';
-import { useAuth } from '@/context/AuthContext';
 import Head from 'next/head';
 import Hero from '@/components/Hero';
 import SEOBlock from '@/components/SEOBlock';
 import CalculatorModal from '@/components/CalculatorModal';
+import PersonalPromoPopup from '@/components/PersonalPromoPopup';
 // import FloatingWidget from '@/components/FloatingWidget';
 
 export default function EnHomePage() {
-    const { user, isLoading } = useAuth();
-    const [showLoginModal, setShowLoginModal] = useState(false);
     const [showCalcModal, setShowCalcModal] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
 
     return (
         <AnimatedPageWrapper>
@@ -68,17 +55,14 @@ export default function EnHomePage() {
             </Head>
             <main className="min-h-screen bg-neutral-950 text-white font-sans">
                 <Header />
-
-                {showLoginModal && (
-                    <LoginModal onClose={() => setShowLoginModal(false)} />
-                )}
                 <CalculatorModal
                     isOpen={showCalcModal}
                     onClose={() => setShowCalcModal(false)}
                 />
+                <PersonalPromoPopup />
 
                 <Hero setShowCalcModal={setShowCalcModal} />
-
+                <HomeCarCatalogSection />
                 <ServicesSection />
                 <FAQ />
                 <Subscription />

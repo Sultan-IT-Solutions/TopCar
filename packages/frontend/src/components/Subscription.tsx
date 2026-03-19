@@ -1,8 +1,8 @@
 // src/components/Subscription.tsx
 'use client';
 
-import Link from 'next/link'; // Import Link
 import FadeInWhenVisible from './FadeInWhenVisible';
+import LocalizedLink from '@/components/LocalizedLink';
 import {
     CheckBadgeIcon,
     CurrencyEuroIcon,
@@ -61,6 +61,49 @@ export default function Subscription() {
                     className="bg-gradient-to-br from-neutral-900 to-black border border-[#d4af37]/30 rounded-2xl shadow-2xl 
                      p-8 sm:p-12 md:p-16"
                 >
+                    <FadeInWhenVisible delay={0.05}>
+                        <div className="mb-10 rounded-2xl border border-white/10 bg-black/30 p-6 sm:p-8">
+                            <div className="flex flex-col gap-3 text-center">
+                                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0dca0]">
+                                    {t('club.compareTitle')}
+                                </p>
+                                <h3 className="text-2xl font-bold text-white sm:text-3xl">
+                                    {t('club.compareSubtitle')}
+                                </h3>
+                            </div>
+                            <div className="mt-8 grid gap-4 md:grid-cols-2">
+                                <div className="rounded-2xl border border-white/10 bg-neutral-950/80 p-6 text-left">
+                                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-400">
+                                        {t('club.withoutSubscription')}
+                                    </p>
+                                    <p className="mt-4 text-4xl font-black text-white">
+                                        {t('club.fullPrice')}
+                                    </p>
+                                    <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+                                        {t('club.withoutSubscriptionDesc')}
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-[#d4af37]/35 bg-[#d4af37]/10 p-6 text-left shadow-[0_20px_60px_rgba(212,175,55,0.12)]">
+                                    <p className="inline-flex rounded-full border border-[#d4af37]/40 bg-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#f0dca0]">
+                                        {t('club.save25')}
+                                    </p>
+                                    <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-white/80">
+                                        {t('club.withSubscription')}
+                                    </p>
+                                    <p className="mt-4 text-4xl font-black text-white">
+                                        {t('club.discountPrice')}
+                                    </p>
+                                    <p className="mt-3 text-sm leading-relaxed text-neutral-200">
+                                        {t('club.withSubscriptionDesc')}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="mt-5 text-center text-sm text-neutral-400">
+                                {t('club.savingsNote')}
+                            </p>
+                        </div>
+                    </FadeInWhenVisible>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 mb-12 sm:mb-16">
                         {benefits.map((benefit, idx) => (
                             <FadeInWhenVisible key={idx} delay={idx * 0.1}>
@@ -87,7 +130,7 @@ export default function Subscription() {
                     <FadeInWhenVisible delay={benefits.length * 0.1}>
                         <div className="text-center">
                             {/* CHANGED: Button is now a Link component */}
-                            <Link
+                            <LocalizedLink
                                 href="/contacts" // Or your dedicated subscription page e.g., /join-club
                                 className="group relative inline-flex items-center justify-center px-10 py-4 sm:px-12 sm:py-5 
                            bg-[#d4af37] text-black rounded-lg text-base sm:text-lg font-bold
@@ -97,7 +140,7 @@ export default function Subscription() {
                             >
                                 <span>{t('club.join')}</span>
                                 <ArrowRightIcon className="ml-2 -mr-1 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
-                            </Link>
+                            </LocalizedLink>
                             <p className="mt-4 text-xs text-neutral-500">
                                 {t('club.termsNote')}
                             </p>

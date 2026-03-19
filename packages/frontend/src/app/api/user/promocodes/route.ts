@@ -38,7 +38,29 @@ export async function GET() {
 
         if (error) throw error;
 
-        return NextResponse.json(userPromoCodes);
+        const normalizedPromoCodes = (userPromoCodes || [])
+            .map((item) => {
+                const promo = Array.isArray(item.promocodes)
+                    ? item.promocodes[0]
+                    : item.promocodes;
+
+                if (!promo?.code) {
+                    return null;
+                }
+
+                return {
+                    id: item.id,
+                    is_used: item.is_used,
+                    code: promo.code,
+                    discount_type: promo.discount_type,
+                    discount_value: promo.discount_value,
+                    description: promo.description,
+                    expiry_date: promo.expiry_date,
+                };
+            })
+            .filter(Boolean);
+
+        return NextResponse.json(normalizedPromoCodes);
     } catch (err: unknown) {
         // ИСПРАВЛЕНО
         return NextResponse.json(

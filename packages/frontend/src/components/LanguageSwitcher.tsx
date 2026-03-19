@@ -5,6 +5,11 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronDownIcon, LanguageIcon } from '@heroicons/react/24/outline';
 import { languages } from '@/lib/i18n';
+import {
+    getLocaleFromPath,
+    localizeHref,
+    stripLocalePrefix,
+} from '@/lib/locale-routing';
 
 // Добавляем тип пропсов
 interface LanguageSwitcherProps {
@@ -15,47 +20,27 @@ export default function LanguageSwitcher({ className }: LanguageSwitcherProps) {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
 
-    // Определяем текущую локаль из URL
-    const getCurrentLocale = () => {
-        if (pathname.startsWith('/en')) return 'en';
-        if (pathname.startsWith('/kk')) return 'kk';
-        return 'ru'; // дефолтная локаль
-    };
-
-    const locale = getCurrentLocale();
+    const locale = getLocaleFromPath(pathname);
     const currentLanguage =
         languages.find((lang) => lang.code === locale) || languages[0];
 
-    // Функция для создания URL с новой локалью
     const getLocalizedPath = (newLocale: 'ru' | 'en' | 'kk') => {
-        // Убираем текущую локаль из пути
-        let cleanPath = pathname;
-        if (pathname.startsWith('/en')) {
-            cleanPath = pathname.slice(3) || '/';
-        } else if (pathname.startsWith('/kk')) {
-            cleanPath = pathname.slice(3) || '/';
-        }
-
-        // Добавляем новую локаль (кроме русского - он без префикса)
-        if (newLocale === 'ru') {
-            return cleanPath;
-        } else {
-            return `/${newLocale}${cleanPath}`;
-        }
+        return localizeHref(stripLocalePrefix(pathname), newLocale);
     };
 
     return (
         <div className={className ? `relative ${className}` : 'relative'}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-300 hover:text-white bg-neutral-800/50 hover:bg-neutral-700/50 rounded-lg transition-all duration-200 border border-neutral-700/50 hover:border-neutral-600"
+                className="group relative flex h-11 w-11 items-center justify-center rounded-full border border-neutral-700/70 bg-neutral-900/80 text-neutral-200 shadow-lg transition-all duration-200 hover:border-[#d4af37]/50 hover:text-white hover:shadow-xl"
                 aria-label="Change language"
             >
-                <LanguageIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">{currentLanguage.flag}</span>
-                <span className="hidden md:inline">{currentLanguage.name}</span>
+                <LanguageIcon className="h-5 w-5" />
+                <span className="absolute -bottom-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-neutral-800 bg-[#d4af37] px-1 text-[10px] font-bold uppercase tracking-wide text-black">
+                    {locale}
+                </span>
                 <ChevronDownIcon
-                    className={`h-4 w-4 transition-transform duration-200 ${
+                    className={`absolute -top-1 -right-1 h-4 w-4 rounded-full bg-neutral-950 p-0.5 text-neutral-400 transition-transform duration-200 ${
                         isOpen ? 'rotate-180' : ''
                     }`}
                 />
@@ -70,7 +55,7 @@ export default function LanguageSwitcher({ className }: LanguageSwitcherProps) {
                     />
 
                     {/* Dropdown */}
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-neutral-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                    <div className="absolute right-0 top-full mt-3 w-56 overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-900 shadow-2xl z-50">
                         {languages.map((language) => (
                             <Link
                                 key={language.code}
@@ -78,10 +63,10 @@ export default function LanguageSwitcher({ className }: LanguageSwitcherProps) {
                                     language.code as 'ru' | 'en' | 'kk',
                                 )}
                                 onClick={() => setIsOpen(false)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-neutral-800 transition-colors ${
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors ${
                                     locale === language.code
                                         ? 'bg-neutral-800 text-[#d4af37]'
-                                        : 'text-neutral-300 hover:text-white'
+                                        : 'text-neutral-300 hover:bg-neutral-800 hover:text-white'
                                 }`}
                             >
                                 <span className="text-lg">{language.flag}</span>

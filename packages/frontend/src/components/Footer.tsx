@@ -2,9 +2,9 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
 import { PhoneIcon, EnvelopeIcon, MapPinIcon } from '@heroicons/react/20/solid';
 import { useTranslations } from '@/lib/i18n';
+import LocalizedLink from '@/components/LocalizedLink';
 
 // --- НОВЫЕ SVG-ИКОНКИ ---
 
@@ -115,44 +115,44 @@ export default function Footer() {
                         </h4>
                         <ul className="space-y-3 text-sm sm:text-base">
                             <li>
-                                <Link
+                                <LocalizedLink
                                     href="/autopark"
                                     className="text-neutral-300 hover:text-[#d4af37] transition-colors"
                                 >
                                     {t('nav.autopark')}
-                                </Link>
+                                </LocalizedLink>
                             </li>
                             <li>
-                                <Link
+                                <LocalizedLink
                                     href="/services"
                                     className="text-neutral-300 hover:text-[#d4af37] transition-colors"
                                 >
                                     {t('nav.services')}
-                                </Link>
+                                </LocalizedLink>
                             </li>
                             <li>
-                                <Link
+                                <LocalizedLink
                                     href="/#faq"
                                     className="text-neutral-300 hover:text-[#d4af37] transition-colors"
                                 >
                                     FAQ
-                                </Link>
+                                </LocalizedLink>
                             </li>
                             <li>
-                                <Link
+                                <LocalizedLink
                                     href="/contacts"
                                     className="text-neutral-300 hover:text-[#d4af37] transition-colors"
                                 >
                                     {t('nav.contacts')}
-                                </Link>
+                                </LocalizedLink>
                             </li>
                             <li>
-                                <Link
+                                <LocalizedLink
                                     href="/terms"
                                     className="text-neutral-300 hover:text-[#d4af37] transition-colors"
                                 >
                                     {t('nav.terms')}
-                                </Link>
+                                </LocalizedLink>
                             </li>
                         </ul>
                     </div>
@@ -235,18 +235,18 @@ export default function Footer() {
                         © {currentYear} TopCar Club. {t('footer.rights')}
                     </p>
                     <div className="flex justify-center space-x-4">
-                        <Link
+                        <LocalizedLink
                             href="/privacy-policy"
                             className="text-xs text-neutral-500 hover:text-[#d4af37] transition-colors"
                         >
                             {t('footer.privacy')}
-                        </Link>
-                        <Link
+                        </LocalizedLink>
+                        <LocalizedLink
                             href="/terms"
                             className="text-xs text-neutral-500 hover:text-[#d4af37] transition-colors"
                         >
                             {t('footer.terms')}
-                        </Link>
+                        </LocalizedLink>
                     </div>
                 </div>
             </div>

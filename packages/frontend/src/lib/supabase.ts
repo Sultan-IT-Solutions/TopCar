@@ -4,6 +4,13 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // Lazily initialize the public client so env vars are only accessed at runtime
 let client: SupabaseClient | null = null;
 
+export function hasPublicSupabaseConfig() {
+    return Boolean(
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    );
+}
+
 export function getSupabase() {
     if (!client) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

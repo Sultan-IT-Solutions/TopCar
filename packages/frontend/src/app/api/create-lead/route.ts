@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
                 COMMENTS: `
           Тип услуги: ${bookingDetails?.serviceType || 'Не указано'}
           Период аренды: ${bookingDetails?.duration || 'Не указано'}
+          Предварительная стоимость: ${bookingDetails?.price ? `${bookingDetails.price.toLocaleString('ru-RU')} ₸` : 'Не указано'}
+          Условия: ${bookingDetails?.conditions || 'Без дополнительных условий'}
         `,
             },
         };

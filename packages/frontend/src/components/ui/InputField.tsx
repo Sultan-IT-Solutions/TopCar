@@ -20,6 +20,7 @@ interface InputFieldProps {
     required?: boolean;
     min?: string;
     disabled?: boolean;
+    readOnly?: boolean;
     maxLength?: number;
 }
 
@@ -35,6 +36,7 @@ const InputField = ({
     required = true,
     min,
     disabled = false,
+    readOnly = false,
     maxLength,
 }: InputFieldProps) => (
     <div>
@@ -60,6 +62,7 @@ const InputField = ({
                 required={required}
                 min={min}
                 disabled={disabled}
+                readOnly={readOnly}
                 maxLength={maxLength}
                 className={`w-full py-3 ${Icon ? 'pl-10 pr-3' : 'px-3.5'} text-base text-white bg-neutral-800 border border-neutral-700 rounded-lg 
                    focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-[#d4af37] placeholder-neutral-500

@@ -39,7 +39,7 @@ type BookingFormProps = {
 };
 
 export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
-    const { t } = useTranslations();
+    const { t, locale } = useTranslations();
     const [formData, setFormData] = useState({
         carName: initialCarName,
         dateFrom: '',
@@ -53,6 +53,13 @@ export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
         type: 'success' | 'error' | '';
         message: string;
     }>({ type: '', message: '' });
+
+    const bookingSourceLabel =
+        locale === 'en'
+            ? 'General website request'
+            : locale === 'kk'
+              ? 'Сайттан жалпы өтінім'
+              : 'Общая заявка с сайта';
 
     useEffect(() => {
         setFormData((prev) => ({ ...prev, carName: initialCarName }));
@@ -91,8 +98,8 @@ export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
             userPhone: cleanedPhone,
             carName,
             bookingDetails: {
-                serviceType: 'Общая заявка с сайта',
-                duration: `с ${dateFrom} по ${dateTo}`,
+                serviceType: bookingSourceLabel,
+                duration: `${t('common.from')} ${dateFrom} ${t('common.to')} ${dateTo}`,
                 price: 0,
             },
         };
@@ -151,7 +158,7 @@ export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
                 <InputField
                     id="dateFrom"
                     name="dateFrom"
-                    label={t('booking.dates') + ' (от)'}
+                    label={`${t('booking.dates')} (${t('common.from')})`}
                     type="date"
                     placeholder=""
                     value={formData.dateFrom}
@@ -162,7 +169,7 @@ export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
                 <InputField
                     id="dateTo"
                     name="dateTo"
-                    label={t('booking.dates') + ' (до)'}
+                    label={`${t('booking.dates')} (${t('common.to')})`}
                     type="date"
                     placeholder=""
                     value={formData.dateTo}

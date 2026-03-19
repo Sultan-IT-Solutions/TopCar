@@ -9,7 +9,7 @@ import {
     ReactNode,
     useRef,
 } from 'react';
-import { getSupabase } from '@/lib/supabase';
+import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 
 // Определяем тип для нашего контекста
@@ -25,7 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Создаем компонент-провайдер
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const supabase = getSupabase();
+    const supabase = hasPublicSupabaseConfig() ? getSupabase() : null;
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sessionLoadingRef = useRef(false);
 
     useEffect(() => {
+        if (!supabase) {
+            setIsLoading(false);
+            return;
+        }
+
         // Флаг что компонент примонтирован
         mountedRef.current = true;
 
@@ -119,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Функция для выхода из системы с защитой от race conditions
     const signOut = async () => {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || !supabase) return;
 
         try {
             await supabase.auth.signOut();

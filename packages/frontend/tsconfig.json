@@ -18,6 +18,7 @@
                 "name": "next"
             }
         ],
+        "types": ["node", "jest", "@testing-library/jest-dom"],
         "paths": {
             "@/*": ["./src/*"]
         },
@@ -30,5 +31,9 @@
         "**/*.d.ts",
         ".next/types/**/*.ts"
     ],
+    "typeAcquisition": {
+        "enable": false,
+        "exclude": ["ms"]
+    },
     "exclude": ["node_modules"]
 }

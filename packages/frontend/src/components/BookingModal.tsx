@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/20/solid';
 import FormattedPrice from './FormattedPrice';
 import { useScrollLock } from '@/hooks/useScrollLock'; // <--- ДОБАВЛЕНО: Импорт нового хука
+import { useTranslations } from '@/lib/i18n';
 
 // --- Вспомогательная функция, добавленная прямо сюда ---
 const formatPhoneNumber = (value: string): string => {
@@ -106,6 +107,7 @@ export default function BookingModal({
     onClose,
     bookingDetails,
 }: Props) {
+    const { locale } = useTranslations();
     const [loggedInUser, setLoggedInUser] = useState<{
         phone: string;
         name?: string;
@@ -117,6 +119,52 @@ export default function BookingModal({
     const [messageType, setMessageType] = useState<'success' | 'error' | ''>(
         '',
     );
+
+    const copy =
+        locale === 'en'
+            ? {
+                  required: 'Please fill in all required fields.',
+                  success: (name: string) =>
+                      `Your request for ${name} has been sent successfully.`,
+                  title: 'Booking',
+                  close: 'Close',
+                  selectedTariff: 'Selected tariff:',
+                  yourName: 'Your name',
+                  yourPhone: 'Your phone',
+                  namePlaceholder: 'John Smith',
+                  bookingFor: 'The request will be created for',
+                  submit: 'Confirm booking',
+                  submitting: 'Submitting...',
+              }
+            : locale === 'kk'
+              ? {
+                    required: 'Барлық міндетті өрістерді толтырыңыз.',
+                    success: (name: string) =>
+                        `${name} көлігіне өтінім сәтті жіберілді.`,
+                    title: 'Брондау',
+                    close: 'Жабу',
+                    selectedTariff: 'Таңдалған тариф:',
+                    yourName: 'Атыңыз',
+                    yourPhone: 'Телефоныңыз',
+                    namePlaceholder: 'Айдос Сәрсенов',
+                    bookingFor: 'Өтінім мына аккаунтқа рәсімделеді',
+                    submit: 'Брондауды растау',
+                    submitting: 'Жіберілуде...',
+                }
+              : {
+                    required: 'Пожалуйста, заполните все обязательные поля.',
+                    success: (name: string) =>
+                        `Заявка на ${name} успешно отправлена!`,
+                    title: 'Бронирование',
+                    close: 'Закрыть',
+                    selectedTariff: 'Выбран тариф:',
+                    yourName: 'Ваше имя',
+                    yourPhone: 'Ваш телефон',
+                    namePlaceholder: 'Иван Петров',
+                    bookingFor: 'Заявка будет оформлена на',
+                    submit: 'Подтвердить бронирование',
+                    submitting: 'Отправка...',
+                };
 
     // <--- ДОБАВЛЕНО: Используем хук useScrollLock для управления прокруткой body
     useScrollLock(isOpen);
@@ -169,7 +217,7 @@ export default function BookingModal({
         const cleanedPhone = userPhone.replace(/[^\d]/g, '');
 
         if (!userName || !cleanedPhone) {
-            setMessage('Пожалуйста, заполните все обязательные поля.');
+            setMessage(copy.required);
             setMessageType('error');
             setLoading(false);
             return;
@@ -183,7 +231,7 @@ export default function BookingModal({
         };
 
         try {
-            const res = await fetch('/api/create-amo-lead', {
+            const res = await fetch('/api/create-lead', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -195,14 +243,12 @@ export default function BookingModal({
                 throw new Error(data.message || `HTTP ${res.status}`);
             }
 
-            setMessage(
-                data.message || `Заявка на ${carName} успешно отправлена!`,
-            );
+            setMessage(data.message || copy.success(carName));
             setMessageType('success');
             setTimeout(onClose, 4000);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            console.error('Ошибка при отправке в amoCRM:', msg);
+            console.error('Ошибка при отправке заявки в CRM:', msg);
             setMessage(msg);
             setMessageType('error');
         } finally {
@@ -221,12 +267,12 @@ export default function BookingModal({
             >
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-                        Бронирование:&nbsp;
+                        {copy.title}:&nbsp;
                         <span className="text-[#d4af37]">{carName}</span>
                     </h2>
                     <button
                         onClick={onClose}
-                        aria-label="Закрыть"
+                        aria-label={copy.close}
                         className="p-2 text-neutral-500 hover:text-white rounded-full hover:bg-neutral-700"
                     >
                         <CloseIcon className="h-6 w-6" />
@@ -236,7 +282,7 @@ export default function BookingModal({
                 {bookingDetails && (
                     <div className="text-sm text-center bg-neutral-800/50 p-3 rounded-lg">
                         <p className="text-neutral-300">
-                            Выбран тариф:&nbsp;
+                            {copy.selectedTariff}&nbsp;
                             <span className="font-semibold text-white">
                                 {bookingDetails.serviceType} (
                                 {bookingDetails.duration})
@@ -253,15 +299,15 @@ export default function BookingModal({
                         <>
                             <InputField
                                 id="userNameModal"
-                                label="Ваше имя"
-                                placeholder="Иван Петров"
+                                label={copy.yourName}
+                                placeholder={copy.namePlaceholder}
                                 value={userName}
                                 onChange={(e) => setUserName(e.target.value)}
                                 icon={UserIcon}
                             />
                             <InputField
                                 id="userPhoneModal"
-                                label="Ваш телефон"
+                                label={copy.yourPhone}
                                 type="tel"
                                 placeholder="+7 (XXX) XXX-XX-XX"
                                 value={userPhone}
@@ -272,7 +318,7 @@ export default function BookingModal({
                         </>
                     ) : (
                         <div className="p-3 bg-neutral-800/50 border border-neutral-700 rounded-lg text-sm text-neutral-300 text-center">
-                            Заявка будет оформлена на&nbsp;
+                            {copy.bookingFor}&nbsp;
                             <span className="font-semibold text-white">
                                 {loggedInUser.name || loggedInUser.phone}
                             </span>
@@ -328,7 +374,7 @@ export default function BookingModal({
                             />
                         </svg>
                     ) : (
-                        'Подтвердить бронирование'
+                        copy.submit
                     )}
                 </button>
             </div>

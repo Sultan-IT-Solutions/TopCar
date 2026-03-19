@@ -2,14 +2,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Link from 'next/link'; // Импортируем Link
 import {
     UserGroupIcon,
     GlobeAltIcon,
     CalendarDaysIcon,
-    ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { useTranslations } from '@/lib/i18n';
+import LocalizedLink from '@/components/LocalizedLink';
 
 const ServicesSection = () => {
     const { t } = useTranslations();
@@ -32,18 +31,11 @@ const ServicesSection = () => {
             title: t('features.eventRental'),
             description: t('features.eventRentalDesc'),
         },
-        {
-            slug: 'security',
-            icon: ShieldCheckIcon,
-            title: t('features.safetyDocs'),
-            description: t('features.safetyDocsDesc'),
-        },
     ];
     return (
-        <section className="py-24 bg-neutral-950">
+        <section className="bg-neutral-950 py-16 sm:py-20">
             <div className="container mx-auto px-4">
-                {/* Заголовок убран, так как он теперь на основной странице */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
                     {services.map((service, index) => (
                         <motion.div
                             key={index}
@@ -52,9 +44,8 @@ const ServicesSection = () => {
                             viewport={{ once: true, amount: 0.5 }}
                             transition={{ duration: 0.5, delay: index * 0.1 }}
                         >
-                            {/* Оборачиваем карточку в Link */}
-                            <Link
-                                href={`/${service.slug}`}
+                            <LocalizedLink
+                                href={`/services/${service.slug}`}
                                 className="block h-full"
                             >
                                 <div className="bg-neutral-900 p-8 rounded-2xl border border-neutral-800 hover:border-[#d4af37] transition-colors duration-300 shadow-lg h-full flex flex-col">
@@ -66,7 +57,7 @@ const ServicesSection = () => {
                                         {service.description}
                                     </p>
                                 </div>
-                            </Link>
+                            </LocalizedLink>
                         </motion.div>
                     ))}
                 </div>

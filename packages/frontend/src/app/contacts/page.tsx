@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import FadeInWhenVisible from '@/components/FadeInWhenVisible';
-// LoginModal больше не нужен здесь
+import { useTranslations } from '@/lib/i18n';
 import {
     MapPinIcon,
     PhoneIcon,
@@ -32,7 +32,7 @@ const MessengerIconPlaceholder = ({
 );
 
 export default function ContactPage() {
-    // `showLoginModal` и `setShowLoginModal` удалены
+    const { locale } = useTranslations();
     const [formValues, setFormValues] = useState({
         name: '',
         contact: '',
@@ -43,6 +43,110 @@ export default function ContactPage() {
         message: string;
     }>({ type: '', message: '' });
     const [isLoading, setIsLoading] = useState(false);
+
+    const content =
+        locale === 'en'
+            ? {
+                  heroTitle: 'Always',
+                  heroAccent: 'Connected',
+                  heroDescription:
+                      'Your comfort comes first. Choose the channel that works best for you or leave a request and our team will reply within 15 minutes.',
+                  directTitle: 'Direct Contact',
+                  messengersTitle: 'Messengers:',
+                  formTitle: 'Send a Request',
+                  nameLabel: 'Your name',
+                  namePlaceholder: 'John Smith',
+                  contactLabel: 'Email or phone',
+                  contactPlaceholder: 'your@email.com or +7 XXX XXX XX XX',
+                  messageLabel: 'Your message',
+                  messagePlaceholder: 'Tell us briefly how we can help...',
+                  sending: 'Sending...',
+                  submit: 'Send message',
+                  validation:
+                      'Please fill in all fields before sending the form.',
+                  crmError: 'Failed to send data to CRM.',
+                  success:
+                      'Your request was sent successfully. We will contact you shortly.',
+                  error: 'We could not send your request. Please try again.',
+                  formCarName: 'Contact form',
+                  formServiceType: 'Message from contacts form',
+                  address: '179/2 Baitursynova St., Almaty',
+                  addressAria: 'Address: 179/2 Baitursynova St., Almaty',
+                  phoneAria: 'Call +7 (777) 666-02-95',
+                  emailAria: 'Send email to topcarelite.kz@gmail.com',
+                  workingHours: 'Available 24/7',
+                  workingHoursAria: 'Working hours: 24/7',
+                  whatsapp: 'Message on WhatsApp',
+                  telegram: 'Contact via Telegram',
+              }
+            : locale === 'kk'
+              ? {
+                    heroTitle: 'Әрқашан',
+                    heroAccent: 'байланыстамыз',
+                    heroDescription:
+                        'Сіздің жайлылығыңыз біз үшін маңызды. Өзіңізге ыңғайлы арнаны таңдаңыз немесе өтінім қалдырыңыз, біздің команда 15 минут ішінде жауап береді.',
+                    directTitle: 'Тікелей байланыс',
+                    messengersTitle: 'Мессенджерлерде:',
+                    formTitle: 'Өтінім қалдыру',
+                    nameLabel: 'Атыңыз',
+                    namePlaceholder: 'Айдос Сәрсенов',
+                    contactLabel: 'Email немесе телефон',
+                    contactPlaceholder:
+                        'your@email.com немесе +7 XXX XXX XX XX',
+                    messageLabel: 'Хабарламаңыз',
+                    messagePlaceholder:
+                        'Сізге қалай көмектесе алатынымызды жазыңыз...',
+                    sending: 'Жіберілуде...',
+                    submit: 'Хабарлама жіберу',
+                    validation: 'Форманы жіберу үшін барлық өрісті толтырыңыз.',
+                    crmError: 'CRM жүйесіне деректерді жіберу сәтсіз аяқталды.',
+                    success:
+                        'Өтінім сәтті жіберілді. Жақын арада сізбен хабарласамыз.',
+                    error: 'Өтінімді жіберу мүмкін болмады. Қайталап көріңіз.',
+                    formCarName: 'Байланыс формасы',
+                    formServiceType: 'Байланыс формасынан хабарлама',
+                    address: 'Алматы қ., Байтұрсынова көш., 179/2',
+                    addressAria:
+                        'Мекенжай: Алматы қ., Байтұрсынова көш., 179/2',
+                    phoneAria: '+7 (777) 666-02-95 нөміріне қоңырау шалу',
+                    emailAria: 'topcarelite.kz@gmail.com поштасына хат жазу',
+                    workingHours: 'Тәулік бойы, 24/7',
+                    workingHoursAria: 'Жұмыс уақыты: тәулік бойы',
+                    whatsapp: 'WhatsApp-қа жазу',
+                    telegram: 'Telegram арқылы байланысу',
+                }
+              : {
+                    heroTitle: 'Всегда',
+                    heroAccent: 'на связи',
+                    heroDescription:
+                        'Ваш комфорт – наш приоритет. Выберите удобный способ для связи или оставьте заявку, и наша команда экспертов ответит вам в течение 15 минут.',
+                    directTitle: 'Прямая связь',
+                    messengersTitle: 'Мы в мессенджерах:',
+                    formTitle: 'Оставить заявку',
+                    nameLabel: 'Ваше имя',
+                    namePlaceholder: 'Иван Петров',
+                    contactLabel: 'Email или телефон',
+                    contactPlaceholder: 'your@email.com или +7 XXX XXX XX XX',
+                    messageLabel: 'Ваше сообщение',
+                    messagePlaceholder: 'Расскажите, чем мы можем помочь...',
+                    sending: 'Отправка...',
+                    submit: 'Отправить сообщение',
+                    validation: 'Пожалуйста, заполните все поля формы.',
+                    crmError: 'Ошибка при отправке данных в CRM.',
+                    success:
+                        'Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.',
+                    error: 'Не удалось отправить заявку. Пожалуйста, попробуйте снова.',
+                    formCarName: 'Контактная форма',
+                    formServiceType: 'Сообщение с формы контактов',
+                    address: 'г. Алматы, ул. Байтурсынова, 179/2',
+                    addressAria: 'Адрес: г. Алматы, ул. Байтурсынова, 179/2',
+                    phoneAria: 'Позвонить по номеру +7 (777) 666-02-95',
+                    emailAria: 'Написать на email topcarelite.kz@gmail.com',
+                    workingHours: 'Работаем круглосуточно, 24/7',
+                    workingHoursAria: 'Время работы: круглосуточно',
+                    whatsapp: 'Написать в WhatsApp',
+                    telegram: 'Связаться в Telegram',
+                };
 
     // GTM helper: безопасно пушим события, если dataLayer доступен
     function pushEvent(event: Record<string, unknown>) {
@@ -75,7 +179,7 @@ export default function ContactPage() {
         if (!formValues.name || !formValues.contact || !formValues.message) {
             setFormStatus({
                 type: 'error',
-                message: 'Пожалуйста, заполните все поля формы.',
+                message: content.validation,
             });
             setIsLoading(false);
             // Analytics: form validation error
@@ -95,9 +199,9 @@ export default function ContactPage() {
                 body: JSON.stringify({
                     userName: formValues.name,
                     userPhone: formValues.contact,
-                    carName: 'Контактная форма',
+                    carName: content.formCarName,
                     bookingDetails: {
-                        serviceType: 'Сообщение с формы Контакты',
+                        serviceType: content.formServiceType,
                         duration: '',
                         price: 0,
                     },
@@ -107,15 +211,12 @@ export default function ContactPage() {
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(
-                    result.message || 'Ошибка при отправке данных в CRM.',
-                );
+                throw new Error(result.message || content.crmError);
             }
 
             setFormStatus({
                 type: 'success',
-                message:
-                    'Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.',
+                message: content.success,
             });
             setFormValues({ name: '', contact: '', message: '' });
 
@@ -129,8 +230,7 @@ export default function ContactPage() {
             console.error('Ошибка при отправке в Bitrix24:', error);
             setFormStatus({
                 type: 'error',
-                message:
-                    'Не удалось отправить заявку. Пожалуйста, попробуйте снова.',
+                message: content.error,
             });
 
             // Analytics: form submit error
@@ -145,26 +245,26 @@ export default function ContactPage() {
     const contactDetails = [
         {
             Icon: MapPinIcon,
-            text: 'г. Алматы, ул. Байтурсынова, 179/2',
+            text: content.address,
             href: 'https://go.2gis.com/xxxxx',
-            ariaLabel: 'Адрес: г. Алматы, ул. Байтурсынова, 179/2',
+            ariaLabel: content.addressAria,
         },
         {
             Icon: PhoneIcon,
             text: '+7 (777) 666-02-95',
             href: 'tel:+77776660295',
-            ariaLabel: 'Позвонить по номеру +7 (777) 666-02-95',
+            ariaLabel: content.phoneAria,
         },
         {
             Icon: EnvelopeIcon,
             text: 'topcarelite.kz@gmail.com',
             href: 'mailto:topcarelite.kz@gmail.com',
-            ariaLabel: 'Написать на email topcarelite.kz@gmail.com',
+            ariaLabel: content.emailAria,
         },
         {
             Icon: ClockIcon,
-            text: 'Работаем круглосуточно, 24/7',
-            ariaLabel: 'Время работы: круглосуточно',
+            text: content.workingHours,
+            ariaLabel: content.workingHoursAria,
         },
     ];
 
@@ -173,13 +273,13 @@ export default function ContactPage() {
             name: 'WhatsApp',
             Icon: () => <MessengerIconPlaceholder name="WA" />,
             href: 'https://wa.me/77776660295',
-            text: 'Написать в WhatsApp',
+            text: content.whatsapp,
         },
         {
             name: 'Telegram',
             Icon: () => <MessengerIconPlaceholder name="TG" />,
             href: 'https://t.me/topcar_elite_kz_support',
-            text: 'Связаться в Telegram',
+            text: content.telegram,
         },
     ];
 
@@ -220,33 +320,30 @@ export default function ContactPage() {
 
     return (
         <AnimatedPageWrapper>
-            {/* ИСПРАВЛЕНИЕ: Убрали лишнюю пропсу `onLoginClick` */}
             <Header />
-            {/* Модальное окно LoginModal удалено, так как Header теперь управляет им */}
 
-            <main className="min-h-screen bg-neutral-950 text-white font-sans">
-                <section className="relative py-24 sm:py-32 md:py-40 text-center bg-gradient-to-b from-black via-neutral-900 to-neutral-950 overflow-hidden">
+            <main className="min-h-screen bg-neutral-950 pt-20 text-white font-sans">
+                <section className="relative overflow-hidden bg-gradient-to-b from-black via-neutral-900 to-neutral-950 px-4 pb-12 pt-8 text-center sm:px-6 sm:pb-16 sm:pt-12">
                     <div className="absolute inset-0 opacity-[0.03]">
                         {/* <Image src="/patterns/luxury-pattern.svg" alt="Luxury Pattern" layout="fill" objectFit="cover" /> */}
                     </div>
-                    <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6">
+                    <div className="relative z-10 max-w-4xl mx-auto">
                         <FadeInWhenVisible>
                             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white">
-                                Всегда{' '}
-                                <span className="text-[#d4af37]">на связи</span>
+                                {content.heroTitle}{' '}
+                                <span className="text-[#d4af37]">
+                                    {content.heroAccent}
+                                </span>
                             </h1>
                             <p className="mt-5 sm:mt-6 text-lg sm:text-xl text-neutral-300 max-w-2xl mx-auto leading-relaxed">
-                                Ваш комфорт – наш приоритет. Выберите удобный
-                                способ для связи или оставьте заявку, и наша
-                                команда экспертов ответит вам в течение 15
-                                минут.
+                                {content.heroDescription}
                             </p>
                             <span className="block w-20 h-1 bg-[#d4af37]/50 mx-auto mt-8"></span>
                         </FadeInWhenVisible>
                     </div>
                 </section>
 
-                <section className="py-16 sm:py-20 px-4 sm:px-6">
+                <section className="px-4 pb-16 pt-0 sm:px-6 sm:pb-20">
                     <div className="max-w-5xl mx-auto">
                         <FadeInWhenVisible>
                             <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-start">
@@ -254,7 +351,7 @@ export default function ContactPage() {
                                     <div>
                                         <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 flex items-center">
                                             <ChatBubbleLeftRightIcon className="h-8 w-8 text-[#d4af37] mr-3" />
-                                            Прямая связь
+                                            {content.directTitle}
                                         </h2>
                                         <ul className="space-y-4">
                                             {contactDetails.map(
@@ -298,7 +395,7 @@ export default function ContactPage() {
                                     </div>
                                     <div className="border-t border-neutral-700 pt-8">
                                         <h3 className="text-xl font-semibold text-white mb-5">
-                                            Мы в мессенджерах:
+                                            {content.messengersTitle}
                                         </h3>
                                         <div className="flex flex-col sm:flex-row gap-4">
                                             {messengerLinks.map((linkItem) => (
@@ -325,7 +422,7 @@ export default function ContactPage() {
 
                                 <div className="bg-neutral-900 border border-neutral-700/80 rounded-2xl shadow-2xl p-6 sm:p-8">
                                     <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6">
-                                        Оставить заявку
+                                        {content.formTitle}
                                     </h2>
                                     <form
                                         onSubmit={handleContactSubmit}
@@ -336,7 +433,7 @@ export default function ContactPage() {
                                                 htmlFor="name"
                                                 className="block text-sm font-medium text-neutral-300 mb-1.5"
                                             >
-                                                Ваше имя{' '}
+                                                {content.nameLabel}{' '}
                                                 <span className="text-[#d4af37]">
                                                     *
                                                 </span>
@@ -347,7 +444,9 @@ export default function ContactPage() {
                                                 id="name"
                                                 value={formValues.name}
                                                 onChange={handleInputChange}
-                                                placeholder="Иван Петров"
+                                                placeholder={
+                                                    content.namePlaceholder
+                                                }
                                                 required
                                                 className="w-full py-3 px-3.5 text-base text-white bg-neutral-800 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-[#d4af37] placeholder-neutral-500"
                                             />
@@ -357,7 +456,7 @@ export default function ContactPage() {
                                                 htmlFor="contact"
                                                 className="block text-sm font-medium text-neutral-300 mb-1.5"
                                             >
-                                                Email или телефон{' '}
+                                                {content.contactLabel}{' '}
                                                 <span className="text-[#d4af37]">
                                                     *
                                                 </span>
@@ -368,7 +467,9 @@ export default function ContactPage() {
                                                 id="contact"
                                                 value={formValues.contact}
                                                 onChange={handleInputChange}
-                                                placeholder="your@email.com или +7 XXX XXX XX XX"
+                                                placeholder={
+                                                    content.contactPlaceholder
+                                                }
                                                 required
                                                 className="w-full py-3 px-3.5 text-base text-white bg-neutral-800 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-[#d4af37] placeholder-neutral-500"
                                             />
@@ -378,7 +479,7 @@ export default function ContactPage() {
                                                 htmlFor="message"
                                                 className="block text-sm font-medium text-neutral-300 mb-1.5"
                                             >
-                                                Ваше сообщение{' '}
+                                                {content.messageLabel}{' '}
                                                 <span className="text-[#d4af37]">
                                                     *
                                                 </span>
@@ -389,7 +490,9 @@ export default function ContactPage() {
                                                 rows={5}
                                                 value={formValues.message}
                                                 onChange={handleInputChange}
-                                                placeholder="Расскажите, чем мы можем помочь..."
+                                                placeholder={
+                                                    content.messagePlaceholder
+                                                }
                                                 required
                                                 className="w-full py-3 px-3.5 text-base text-white bg-neutral-800 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-[#d4af37] placeholder-neutral-500 resize-none"
                                             />
@@ -446,12 +549,14 @@ export default function ContactPage() {
                                                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                                         ></path>
                                                     </svg>
-                                                    <span>Отправка...</span>
+                                                    <span>
+                                                        {content.sending}
+                                                    </span>
                                                 </>
                                             ) : (
                                                 <>
                                                     <span>
-                                                        Отправить сообщение
+                                                        {content.submit}
                                                     </span>
                                                     <PaperAirplaneIcon className="h-5 w-5 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
                                                 </>

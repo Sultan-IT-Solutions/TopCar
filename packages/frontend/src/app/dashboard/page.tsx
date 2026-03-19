@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext'; // 1. ИМПОРТИРУЕМ ГЛАВНЫЙ ХУК
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -16,7 +16,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { getSupabase } from '@/lib/supabase';
 import FormattedPrice from '@/components/FormattedPrice';
-// import UserPromoCodes from '@/components/dashboard/UserPromoCodes';
+import UserPromoCodes from '@/components/dashboard/UserPromoCodes';
+import { useTranslations } from '@/lib/i18n';
+import { getLocaleFromPath, localizeHref } from '@/lib/locale-routing';
 
 // --- Компонент для сохраненных расчетов (остается без изменений) ---
 type SavedCalculation = {
@@ -29,6 +31,7 @@ type SavedCalculation = {
 };
 
 function SavedCalculations() {
+    const { locale } = useTranslations();
     const [calculations, setCalculations] = useState<SavedCalculation[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -57,12 +60,28 @@ function SavedCalculations() {
         );
     }
 
+    const labels =
+        locale === 'en'
+            ? {
+                  title: 'Saved calculations',
+                  empty: 'You do not have any saved calculations yet.',
+              }
+            : locale === 'kk'
+              ? {
+                    title: 'Сақталған есептер',
+                    empty: 'Сізде әзірге сақталған есептер жоқ.',
+                }
+              : {
+                    title: 'Сохраненные расчеты',
+                    empty: 'У вас пока нет сохраненных расчетов.',
+                };
+
     return (
         <section>
             <div className="flex items-center mb-6">
                 <CalculatorIcon className="h-8 w-8 text-[#d4af37] mr-3 shrink-0" />
                 <h2 className="text-2xl font-bold text-white">
-                    Сохраненные расчеты
+                    {labels.title}
                 </h2>
             </div>
             {calculations.length > 0 ? (
@@ -95,9 +114,7 @@ function SavedCalculations() {
                 </div>
             ) : (
                 <div className="text-center py-10 px-6 bg-neutral-900 border border-dashed border-neutral-700 rounded-2xl">
-                    <p className="text-neutral-400">
-                        У вас пока нет сохраненных расчетов.
-                    </p>
+                    <p className="text-neutral-400">{labels.empty}</p>
                 </div>
             )}
         </section>
@@ -106,19 +123,45 @@ function SavedCalculations() {
 
 // --- ОСНОВНОЙ КОМПОНЕНТ СТРАНИЦЫ ---
 export default function DashboardPage() {
-    // 2. ПОЛУЧАЕМ ДАННЫЕ ИЗ КОНТЕКСТА
+    const { locale } = useTranslations();
     const { user, isLoading, signOut } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
-    // 3. ЭФФЕКТ ДЛЯ ЗАЩИТЫ СТРАНИЦЫ
+    const content =
+        locale === 'en'
+            ? {
+                  profileTitle: 'Your profile',
+                  logout: 'Log out',
+                  name: 'Name:',
+                  phone: 'Phone:',
+                  email: 'Email:',
+                  notSpecified: 'Not specified',
+              }
+            : locale === 'kk'
+              ? {
+                    profileTitle: 'Профиль',
+                    logout: 'Шығу',
+                    name: 'Аты:',
+                    phone: 'Телефон:',
+                    email: 'Email:',
+                    notSpecified: 'Көрсетілмеген',
+                }
+              : {
+                    profileTitle: 'Ваш профиль',
+                    logout: 'Выйти',
+                    name: 'Имя:',
+                    phone: 'Телефон:',
+                    email: 'Email:',
+                    notSpecified: 'Не указано',
+                };
+
     useEffect(() => {
-        // Если загрузка завершена и пользователя нет, перенаправляем его
         if (!isLoading && !user) {
-            router.push('/');
+            router.push(localizeHref('/', getLocaleFromPath(pathname)));
         }
-    }, [user, isLoading, router]);
+    }, [isLoading, pathname, router, user]);
 
-    // 4. ПОКА ИДЕТ ПРОВЕРКА СЕССИИ, ПОКАЗЫВАЕМ ЗАГРУЗКУ
     if (isLoading || !user) {
         return (
             <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
@@ -127,10 +170,8 @@ export default function DashboardPage() {
         );
     }
 
-    // 5. КОГДА ДАННЫЕ ЗАГРУЖЕНЫ, ОТОБРАЖАЕМ КОНТЕНТ
     return (
         <AnimatedPageWrapper>
-            {/* Header уже использует useAuth, поэтому он тоже обновится */}
             <Header />
             <main className="min-h-[80vh] bg-neutral-950 text-white font-sans py-16 sm:py-24 px-4">
                 <div className="max-w-3xl mx-auto space-y-12">
@@ -138,44 +179,44 @@ export default function DashboardPage() {
                         <div className="flex items-center mb-6">
                             <UserCircleIcon className="h-8 w-8 text-[#d4af37] mr-3 shrink-0" />
                             <h1 className="text-2xl font-bold text-white">
-                                Ваш профиль
+                                {content.profileTitle}
                             </h1>
-                            {/* Кнопка выхода теперь использует функцию из контекста */}
                             <button
                                 onClick={signOut}
-                                title="Выйти"
+                                title={content.logout}
                                 className="ml-auto p-2 text-neutral-500 hover:text-red-400 transition-colors rounded-full hover:bg-neutral-800"
                             >
                                 <ArrowRightOnRectangleIcon className="h-6 w-6" />
                             </button>
                         </div>
                         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-4">
-                            {/* Данные берем из объекта user, полученного от Supabase */}
                             <div className="flex items-center">
                                 <UserCircleIcon className="h-5 w-5 text-neutral-500 mr-4 shrink-0" />
                                 <span className="text-sm text-neutral-400">
-                                    Имя:
+                                    {content.name}
                                 </span>
                                 <span className="ml-auto font-medium text-white text-right">
-                                    {user.user_metadata.name || 'Не указано'}
+                                    {user.user_metadata.name ||
+                                        content.notSpecified}
                                 </span>
                             </div>
                             <div className="flex items-center">
                                 <PhoneSolidIcon className="h-5 w-5 text-neutral-500 mr-4 shrink-0" />
                                 <span className="text-sm text-neutral-400">
-                                    Телефон:
+                                    {content.phone}
                                 </span>
                                 <span className="ml-auto font-medium text-white">
-                                    {user.user_metadata.phone || 'Не указан'}
+                                    {user.user_metadata.phone ||
+                                        content.notSpecified}
                                 </span>
                             </div>
                             <div className="flex items-center">
                                 <EnvelopeSolidIcon className="h-5 w-5 text-neutral-500 mr-4 shrink-0" />
                                 <span className="text-sm text-neutral-400">
-                                    Email:
+                                    {content.email}
                                 </span>
                                 <span className="ml-auto font-medium text-white text-right">
-                                    {user.email || 'Не указан'}
+                                    {user.email || content.notSpecified}
                                 </span>
                             </div>
                         </div>
@@ -183,7 +224,7 @@ export default function DashboardPage() {
 
                     <SavedCalculations />
 
-                    {/* <UserPromoCodes /> */}
+                    <UserPromoCodes />
                 </div>
             </main>
             <Footer />

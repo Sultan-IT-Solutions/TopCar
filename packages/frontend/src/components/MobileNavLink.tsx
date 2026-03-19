@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import clsx from 'clsx';
 import React, { forwardRef, ReactNode } from 'react';
+import { getLocaleFromPath, localizeHref } from '@/lib/locale-routing';
 
 type MobileNavLinkProps = {
     href: string;
@@ -11,10 +12,16 @@ type MobileNavLinkProps = {
 
 const MobileNavLink = forwardRef<HTMLAnchorElement, MobileNavLinkProps>(
     ({ href, currentPath, children, onClick }, ref) => {
-        const isActive = currentPath === href;
+        const locale = getLocaleFromPath(currentPath);
+        const localizedHref = localizeHref(href, locale);
+        const isActive =
+            localizedHref === '/'
+                ? currentPath === localizedHref
+                : currentPath === localizedHref ||
+                  currentPath.startsWith(`${localizedHref}/`);
         return (
             <Link
-                href={href}
+                href={localizedHref}
                 ref={ref}
                 onClick={onClick}
                 className={clsx(

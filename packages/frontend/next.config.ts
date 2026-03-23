@@ -56,10 +56,7 @@ const nextConfig = {
     // Compression
     compress: true,
 
-    webpack(
-        config: import('webpack').Configuration,
-        { dev }: { dev: boolean }
-    ) {
+    webpack(config: { cache?: unknown }, { dev }: { dev: boolean }) {
         if (dev) {
             config.cache = false;
         }

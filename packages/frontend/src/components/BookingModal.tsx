@@ -11,6 +11,8 @@ import {
 } from '@heroicons/react/20/solid';
 import FormattedPrice from './FormattedPrice';
 import { useScrollLock } from '@/hooks/useScrollLock'; // <--- ДОБАВЛЕНО: Импорт нового хука
+import { csrfClientHelper } from '@/lib/csrf-client';
+import { useAuth } from '@/context/AuthContext';
 import { useTranslations } from '@/lib/i18n';
 
 // --- Вспомогательная функция, добавленная прямо сюда ---
@@ -108,10 +110,7 @@ export default function BookingModal({
     bookingDetails,
 }: Props) {
     const { locale } = useTranslations();
-    const [loggedInUser, setLoggedInUser] = useState<{
-        phone: string;
-        name?: string;
-    } | null>(null);
+    const { user } = useAuth();
     const [userName, setUserName] = useState('');
     const [userPhone, setUserPhone] = useState('');
     const [loading, setLoading] = useState(false);
@@ -169,6 +168,22 @@ export default function BookingModal({
     // <--- ДОБАВЛЕНО: Используем хук useScrollLock для управления прокруткой body
     useScrollLock(isOpen);
 
+    const loggedInUser =
+        user && typeof user.email === 'string'
+            ? {
+                  phone:
+                      typeof user.user_metadata?.phone === 'string'
+                          ? user.user_metadata.phone
+                          : '',
+                  name:
+                      typeof user.user_metadata?.name === 'string'
+                          ? user.user_metadata.name
+                          : typeof user.user_metadata?.full_name === 'string'
+                            ? user.user_metadata.full_name
+                            : undefined,
+              }
+            : null;
+
     const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
         const formatted = formatPhoneNumber(e.target.value);
         setUserPhone(formatted);
@@ -176,24 +191,19 @@ export default function BookingModal({
 
     useEffect(() => {
         if (!isOpen) return;
-        // document.body.style.overflow = 'hidden'; // <--- УДАЛЕНО: Теперь управляется useScrollLock
-        const stored = localStorage.getItem('topcar-user');
-        if (stored) {
-            try {
-                const u = JSON.parse(stored);
-                setLoggedInUser(u);
-                setUserName(u.name || '');
-                setUserPhone(formatPhoneNumber(u.phone || ''));
-            } catch {
-                setLoggedInUser(null);
-            }
+
+        if (loggedInUser) {
+            setUserName(loggedInUser.name || '');
+            setUserPhone(formatPhoneNumber(loggedInUser.phone || ''));
         } else {
-            setLoggedInUser(null);
+            setUserName('');
+            setUserPhone('');
         }
+
         setMessage('');
         setMessageType('');
         setLoading(false);
-    }, [isOpen]);
+    }, [isOpen, loggedInUser]);
 
     // <--- УДАЛЕНО: Старая логика useEffect для body.style.overflow
     // useEffect(() => {
@@ -233,7 +243,9 @@ export default function BookingModal({
         try {
             const res = await fetch('/api/create-lead', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfClientHelper.addTokenToHeaders({
+                    'Content-Type': 'application/json',
+                }),
                 body: JSON.stringify(payload),
             });
 

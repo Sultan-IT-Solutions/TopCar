@@ -4,11 +4,12 @@
     "main": "index.js",
     "author": "Sultan IT Solutions",
     "scripts": {
-        "dev": "concurrently \"yarn workspace @topcar/frontend dev\" \"yarn workspace @topcar/backend start:dev\"",
-        "build": "concurrently \"yarn workspace @topcar/frontend build\"",
-        "start": "",
+        "dev": "yarn workspace @topcar/frontend dev",
+        "build": "yarn workspace @topcar/frontend build",
+        "start": "yarn workspace @topcar/frontend start",
+        "db:apply": "yarn workspace @topcar/frontend db:apply",
         "format": "prettier --write .",
-        "clean": "rimraf --glob \"**/node_modules\" \"**/.next\" \"**/dist\""
+        "clean": "rimraf --glob \"**/node_modules\" \"**/.next\" \"**/.next-dev\" \"**/.next-build\" \"**/dist\""
     },
     "workspaces": [
         "./packages/*"
@@ -16,7 +17,6 @@
     "license": "UNLICENSED",
     "description": "",
     "dependencies": {
-        "concurrently": "^9.2.0",
         "prettier": "^3.6.2",
         "rimraf": "^6.0.1"
     },

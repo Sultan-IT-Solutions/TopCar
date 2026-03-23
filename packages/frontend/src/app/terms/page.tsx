@@ -205,7 +205,13 @@ export default function TermsPage() {
 
             <main className="min-h-screen bg-neutral-950 pt-20 text-white font-sans">
                 <section className="relative bg-gradient-to-b from-black via-neutral-900 to-neutral-950 px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-12">
-                    <div className="absolute inset-0 opacity-[0.03] bg-[url('/patterns/geometric-luxury.svg')] bg-repeat"></div>
+                    <div
+                        className="absolute inset-0 bg-repeat opacity-[0.03]"
+                        style={{
+                            backgroundImage:
+                                "url('/patterns/geometric-luxury.svg')",
+                        }}
+                    ></div>
                     <div className="relative z-10 max-w-4xl mx-auto text-center">
                         <FadeInWhenVisible>
                             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white">

@@ -86,32 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (mountedRef.current) {
                 setSession(session);
                 setUser(session?.user ?? null);
-
-                // Синхронизируем localStorage для совместимости со старым кодом, если нужно
-                if (session) {
-                    // Важно: Сохраняем только неконфиденциальные данные
-                    try {
-                        localStorage.setItem(
-                            'topcar-user',
-                            JSON.stringify({
-                                id: session.user.id,
-                                email: session.user.email,
-                                name: session.user.user_metadata.name,
-                            }),
-                        );
-                    } catch (error) {
-                        console.error('Error saving to localStorage:', error);
-                    }
-                } else {
-                    try {
-                        localStorage.removeItem('topcar-user');
-                    } catch (error) {
-                        console.error(
-                            'Error removing from localStorage:',
-                            error,
-                        );
-                    }
-                }
             }
         });
 

@@ -18,15 +18,6 @@ export default function PWABonusPage() {
                     <LoginModal
                         onClose={() => {
                             setShowLoginModal(false);
-                            const storedUser =
-                                localStorage.getItem('topcar-user');
-                            if (storedUser) {
-                                try {
-                                    JSON.parse(storedUser);
-                                } catch {
-                                    localStorage.removeItem('topcar-user');
-                                }
-                            }
                         }}
                     />
                 )}

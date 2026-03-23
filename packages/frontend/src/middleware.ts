@@ -1,12 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+    ADMIN_SESSION_COOKIE_NAME,
+    verifyAdminSessionToken,
+} from '@/lib/admin-session';
+import { ensureCsrfCookie } from '@/lib/csrf';
 
 const locales = ['ru', 'en', 'kk'] as const;
 
 /**
  * Security Headers для защиты приложения
  */
-function addSecurityHeaders(response: NextResponse): NextResponse {
+function addSecurityHeaders(
+    response: NextResponse,
+    request: NextRequest,
+): NextResponse {
     const headers = response.headers;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isLocalhost =
+        request.nextUrl.hostname === 'localhost' ||
+        request.nextUrl.hostname === '127.0.0.1';
+    const scriptDirectives = [
+        "'self'",
+        "'unsafe-inline'",
+        'https://www.googletagmanager.com',
+        'https://www.google-analytics.com',
+    ];
+
+    if (!isProduction) {
+        scriptDirectives.push("'unsafe-eval'");
+    }
 
     // Content Security Policy (CSP)
     // Защита от XSS и других инъекций
@@ -14,11 +36,12 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
         'Content-Security-Policy',
         [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
+            `script-src ${scriptDirectives.join(' ')}`,
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: https: blob:",
             "connect-src 'self' https://www.google-analytics.com https://*.supabase.co",
+            "object-src 'none'",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "form-action 'self'",
@@ -27,7 +50,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 
     // HTTP Strict Transport Security (HSTS)
     // Заставляет браузер использовать только HTTPS
-    if (process.env.NODE_ENV === 'production') {
+    if (isProduction) {
         headers.set(
             'Strict-Transport-Security',
             'max-age=63072000; includeSubDomains; preload',
@@ -56,15 +79,36 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
         'Permissions-Policy',
         'camera=(), microphone=(), geolocation=(), payment=()',
     );
+    headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+    headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+    headers.set('Origin-Agent-Cluster', '?1');
 
     // X-DNS-Prefetch-Control
     // Контроль DNS prefetching
     headers.set('X-DNS-Prefetch-Control', 'on');
 
+    if (!isProduction && isLocalhost) {
+        headers.set('Cache-Control', 'no-store, no-cache, max-age=0, must-revalidate');
+        headers.set('Pragma', 'no-cache');
+        headers.set('Expires', '0');
+        headers.set('Clear-Site-Data', '"cache", "storage"');
+    }
+
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+        headers.set(
+            'Cache-Control',
+            'private, no-store, no-cache, max-age=0, must-revalidate',
+        );
+        headers.set('Pragma', 'no-cache');
+        headers.set('Expires', '0');
+        headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+        headers.set('Vary', 'Cookie');
+    }
+
     return response;
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Пропускаем статические файлы и API роуты
@@ -81,7 +125,25 @@ export function middleware(request: NextRequest) {
         pathname.startsWith('/yandex')
     ) {
         const response = NextResponse.next();
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(response, request);
+    }
+
+    if (pathname.startsWith('/admin')) {
+        const isAdminLoginPage = pathname === '/admin/login';
+        const token = request.cookies.get(ADMIN_SESSION_COOKIE_NAME)?.value;
+        const adminSession = await verifyAdminSessionToken(token);
+
+        if (!adminSession && !isAdminLoginPage) {
+            const loginUrl = new URL('/admin/login', request.url);
+            loginUrl.searchParams.set('next', pathname);
+            const response = NextResponse.redirect(loginUrl);
+            return ensureCsrfCookie(request, addSecurityHeaders(response, request));
+        }
+
+        if (adminSession && isAdminLoginPage) {
+            const response = NextResponse.redirect(new URL('/admin', request.url));
+            return ensureCsrfCookie(request, addSecurityHeaders(response, request));
+        }
     }
 
     // Проверяем, есть ли локаль в URL
@@ -92,19 +154,19 @@ export function middleware(request: NextRequest) {
 
     if (pathnameHasLocale) {
         const response = NextResponse.next();
-        return addSecurityHeaders(response);
+        return ensureCsrfCookie(request, addSecurityHeaders(response, request));
     }
 
     // Если локали нет, редиректим на дефолтную (русскую) без префикса
     // Это означает, что / = русский, /en/ = английский, /kk/ = казахский
     if (pathname === '/') {
         const response = NextResponse.next();
-        return addSecurityHeaders(response);
+        return ensureCsrfCookie(request, addSecurityHeaders(response, request));
     }
 
     // Для всех остальных путей без локали добавляем дефолтную
     const response = NextResponse.next();
-    return addSecurityHeaders(response);
+    return ensureCsrfCookie(request, addSecurityHeaders(response, request));
 }
 
 export const config = {

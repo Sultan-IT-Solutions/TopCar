@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import FadeInWhenVisible from '@/components/FadeInWhenVisible';
+import { csrfClientHelper } from '@/lib/csrf-client';
 import { useTranslations } from '@/lib/i18n';
 import {
     MapPinIcon,
@@ -191,19 +192,22 @@ export default function ContactPage() {
             return;
         }
 
-        console.log('Form submitted:', formValues);
         try {
             const response = await fetch('/api/create-lead', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfClientHelper.addTokenToHeaders({
+                    'Content-Type': 'application/json',
+                }),
                 body: JSON.stringify({
                     userName: formValues.name,
                     userPhone: formValues.contact,
+                    message: formValues.message,
                     carName: content.formCarName,
                     bookingDetails: {
                         serviceType: content.formServiceType,
                         duration: '',
                         price: 0,
+                        conditions: formValues.message,
                     },
                 }),
             });

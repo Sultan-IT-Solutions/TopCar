@@ -1,4 +1,5 @@
 // src/lib/supabaseAdmin.ts
+import 'server-only';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Lazily create the admin client using runtime env vars. This avoids requiring
@@ -13,7 +14,12 @@ export function getSupabaseAdmin() {
         if (!url || !key) {
             throw new Error('Supabase admin credentials are missing');
         }
-        admin = createClient(url, key);
+        admin = createClient(url, key, {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+            },
+        });
     }
     return admin;
 }

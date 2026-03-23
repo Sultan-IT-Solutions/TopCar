@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/20/solid';
 
 import InputField, { HeroIconType } from '@/components/ui/InputField';
+import { csrfClientHelper } from '@/lib/csrf-client';
 import { formatPhoneNumber } from '@/lib/formatters';
 import { useTranslations } from '@/lib/i18n';
 
@@ -107,7 +108,9 @@ export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
         try {
             const response = await fetch('/api/create-lead', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfClientHelper.addTokenToHeaders({
+                    'Content-Type': 'application/json',
+                }),
                 body: JSON.stringify(submissionData),
             });
             const responseData = await response.json();

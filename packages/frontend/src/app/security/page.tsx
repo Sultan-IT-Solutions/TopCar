@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -13,8 +14,22 @@ import {
     ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 
+type SecurityDocument = {
+    slug: string;
+    title: string;
+    description: string;
+    sortOrder: number;
+    status: 'available' | 'pending';
+    source: 'uploaded' | 'fallback' | 'missing';
+    fileName?: string;
+    viewUrl?: string;
+    downloadUrl?: string;
+};
+
 export default function SecurityPage() {
     const { locale } = useTranslations();
+    const [documents, setDocuments] = useState<SecurityDocument[]>([]);
+    const [hasLoadedDocuments, setHasLoadedDocuments] = useState(false);
     const content =
         locale === 'en'
             ? {
@@ -211,7 +226,64 @@ export default function SecurityPage() {
                     ctaButton: 'Связаться с менеджером',
                 };
 
-    const publishedDocuments = content.documents.filter(
+    useEffect(() => {
+        let isActive = true;
+
+        const loadDocuments = async () => {
+            try {
+                const response = await fetch(
+                    `/api/company-documents?locale=${locale}`,
+                    {
+                        cache: 'no-store',
+                    },
+                );
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to load documents');
+                }
+
+                if (isActive && Array.isArray(data)) {
+                    setDocuments(data);
+                    setHasLoadedDocuments(true);
+                }
+            } catch {
+                if (isActive) {
+                    setHasLoadedDocuments(false);
+                }
+            }
+        };
+
+        void loadDocuments();
+
+        return () => {
+            isActive = false;
+        };
+    }, [locale]);
+
+    const fallbackDocuments = useMemo<SecurityDocument[]>(
+        () =>
+            content.documents.map((document, index) => ({
+                slug: `fallback-${index}`,
+                title: document.name,
+                description: document.description,
+                sortOrder: index + 1,
+                status: document.status,
+                source:
+                    document.status === 'available' ? 'fallback' : 'missing',
+                fileName: document.fileUrl?.split('/').pop(),
+                viewUrl: document.fileUrl,
+                downloadUrl: document.fileUrl,
+            })),
+        [content.documents],
+    );
+
+    const displayedDocuments = useMemo(
+        () => (hasLoadedDocuments ? documents : fallbackDocuments),
+        [documents, fallbackDocuments, hasLoadedDocuments],
+    );
+
+    const publishedDocuments = displayedDocuments.filter(
         (doc) => doc.status === 'available',
     );
 
@@ -253,7 +325,7 @@ export default function SecurityPage() {
                             {publishedDocuments.map((doc) => {
                                 return (
                                     <div
-                                        key={doc.name}
+                                        key={doc.slug}
                                         className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-5 sm:p-6"
                                     >
                                         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -261,17 +333,24 @@ export default function SecurityPage() {
                                                 <div className="flex flex-wrap items-center gap-3">
                                                     <DocumentTextIcon className="h-6 w-6 text-[#d4af37]" />
                                                     <p className="text-lg font-semibold text-white">
-                                                        {doc.name}
+                                                        {doc.title}
                                                     </p>
                                                 </div>
                                                 <p className="mt-3 text-sm leading-relaxed text-neutral-400">
                                                     {doc.description}
                                                 </p>
+                                                {'source' in doc &&
+                                                    doc.source === 'uploaded' &&
+                                                    doc.fileName && (
+                                                        <p className="mt-2 text-xs text-neutral-500">
+                                                            {doc.fileName}
+                                                        </p>
+                                                    )}
                                             </div>
 
                                             <div className="flex items-center gap-3">
                                                 <a
-                                                    href={doc.fileUrl}
+                                                    href={doc.viewUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="inline-flex items-center gap-2 rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-neutral-500 hover:bg-neutral-800"
@@ -281,7 +360,7 @@ export default function SecurityPage() {
                                                     {content.view}
                                                 </a>
                                                 <a
-                                                    href={doc.fileUrl}
+                                                    href={doc.downloadUrl}
                                                     download
                                                     className="inline-flex items-center gap-2 rounded-2xl bg-[#d4af37] px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#c0982c]"
                                                     title={content.download}

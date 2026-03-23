@@ -1,9 +1,7 @@
 /* src/styles/globals.css */
 
-@import 'tailwindcss';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss' source(none);
+@source '../';
 
 /* --- СЛОЙ BASE: ОСНОВНЫЕ СТИЛИ И ПЕРЕМЕННЫЕ --- */
 @layer base {

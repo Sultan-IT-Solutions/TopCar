@@ -1,9 +1,11 @@
 // src/app/api/user/promocodes/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { jsonNoStore } from '@/lib/admin-route';
+import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
 
-export async function GET() {
+export const GET = withRateLimit(async (_request: NextRequest) => {
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
@@ -13,7 +15,7 @@ export async function GET() {
         } = await supabase.auth.getUser();
 
         if (!user) {
-            return NextResponse.json(
+            return jsonNoStore(
                 { message: 'Пользователь не авторизован' },
                 { status: 401 },
             );
@@ -60,12 +62,11 @@ export async function GET() {
             })
             .filter(Boolean);
 
-        return NextResponse.json(normalizedPromoCodes);
+        return jsonNoStore(normalizedPromoCodes);
     } catch (err: unknown) {
-        // ИСПРАВЛЕНО
-        return NextResponse.json(
+        return jsonNoStore(
             { message: (err as Error).message || 'Внутренняя ошибка сервера' },
             { status: 500 },
         );
     }
-}
+}, RateLimitPresets.API_MODERATE, 'user-promocodes');

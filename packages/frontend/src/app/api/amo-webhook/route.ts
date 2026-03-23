@@ -1,19 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
 const { RESEND_API_KEY } = process.env;
+const { AMO_WEBHOOK_SECRET } = process.env;
 
 function getResendClient() {
     if (!RESEND_API_KEY) return null;
     return new Resend(RESEND_API_KEY);
 }
 
-export async function POST(req: NextRequest) {
+function isAuthorizedWebhookRequest(request: NextRequest) {
+    if (!AMO_WEBHOOK_SECRET) {
+        return true;
+    }
+
+    const querySecret = request.nextUrl.searchParams.get('secret');
+    const headerSecret = request.headers.get('x-webhook-secret');
+
+    return (
+        querySecret === AMO_WEBHOOK_SECRET || headerSecret === AMO_WEBHOOK_SECRET
+    );
+}
+
+export const POST = withRateLimit(async (req: NextRequest) => {
     try {
+        if (!isAuthorizedWebhookRequest(req)) {
+            return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
         const contentType = req.headers.get('content-type') || '';
-        let payload: any;
+        let payload: Record<string, unknown>;
 
         if (contentType.includes('application/json')) {
             payload = await req.json();
@@ -21,10 +40,8 @@ export async function POST(req: NextRequest) {
             const text = await req.text();
             payload = Object.fromEntries(new URLSearchParams(text));
         } else {
-            throw new Error(`${contentType}`);
+            throw new Error(contentType);
         }
-
-        console.log('✅ Вебхук получен от amoCRM:', payload);
 
         const event = payload.event || payload.type || 'unknown';
         const leadName =
@@ -49,14 +66,17 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ ok: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('❌ Ошибка при обработке вебхука:', err);
         return NextResponse.json(
-            { ok: false, error: err.message },
+            {
+                ok: false,
+                error: err instanceof Error ? err.message : 'Unknown error',
+            },
             { status: 500 },
         );
     }
-}
+}, RateLimitPresets.WEBHOOK, 'amo-webhook');
 
 export async function GET() {
     return NextResponse.json({ message: 'AmoCRM webhook endpoint active' });

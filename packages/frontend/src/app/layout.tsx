@@ -95,6 +95,72 @@ export default function RootLayout({
             });
           `}
                 </Script>
+                {process.env.NODE_ENV === 'development' && (
+                    <Script id="dev-cache-reset" strategy="beforeInteractive">
+                        {`
+              (function() {
+                if (typeof window === 'undefined') return;
+                var host = window.location.hostname;
+                if (host !== 'localhost' && host !== '127.0.0.1') return;
+                var reloadKey = '__topcar_dev_cache_reset__';
+
+                try {
+                  var swPromise = Promise.resolve([]);
+                  var cachePromise = Promise.resolve([]);
+
+                  if ('serviceWorker' in navigator) {
+                    swPromise = navigator.serviceWorker.getRegistrations()
+                      .then(function(registrations) {
+                        return Promise.all(
+                          registrations.map(function(registration) {
+                            return registration.unregister().then(function() {
+                              return registration.scope;
+                            });
+                          })
+                        );
+                      })
+                      .catch(function() {
+                        return [];
+                      });
+                  }
+
+                  if ('caches' in window) {
+                    cachePromise = caches.keys()
+                      .then(function(keys) {
+                        return Promise.all(
+                          keys.map(function(key) {
+                            return caches.delete(key).then(function(deleted) {
+                              return deleted ? key : null;
+                            });
+                          })
+                        );
+                      })
+                      .catch(function() {
+                        return [];
+                      });
+                  }
+
+                  Promise.all([swPromise, cachePromise]).then(function(results) {
+                    var registrations = (results[0] || []).filter(Boolean);
+                    var cachesCleared = (results[1] || []).filter(Boolean);
+                    var hadStaleRuntime = registrations.length > 0 || cachesCleared.length > 0;
+                    var wasReloaded = window.sessionStorage.getItem(reloadKey) === '1';
+
+                    if (hadStaleRuntime && !wasReloaded) {
+                      window.sessionStorage.setItem(reloadKey, '1');
+                      window.location.reload();
+                      return;
+                    }
+
+                    if (!hadStaleRuntime && wasReloaded) {
+                      window.sessionStorage.removeItem(reloadKey);
+                    }
+                  });
+                } catch (_) {}
+              })();
+            `}
+                    </Script>
+                )}
                 {/* --- END SEO --- */}
             </head>
             <body className="bg-background text-foreground">

@@ -14,6 +14,7 @@ import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
 import FormattedPrice from './FormattedPrice';
 import BookingModal from './BookingModal';
 import { useAuth } from '@/context/AuthContext';
+import { csrfClientHelper } from '@/lib/csrf-client';
 import { useTranslations } from '@/lib/i18n';
 import { emailSchema } from '@/lib/validation';
 import {
@@ -339,7 +340,9 @@ export default function CalculatorModal({
         try {
             const response = await fetch('/api/send-calculation', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfClientHelper.addTokenToHeaders({
+                    'Content-Type': 'application/json',
+                }),
                 body: JSON.stringify({
                     email: deliveryEmail,
                     calculation,
@@ -381,7 +384,9 @@ export default function CalculatorModal({
         try {
             const response = await fetch('/api/save-calculation', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfClientHelper.addTokenToHeaders({
+                    'Content-Type': 'application/json',
+                }),
                 body: JSON.stringify({ calculation }),
             });
 

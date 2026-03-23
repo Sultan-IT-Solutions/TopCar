@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { ensureProtectedMutationRequest } from '@/lib/request-security';
+import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -25,26 +27,33 @@ function getResendClient() {
     return new Resend(RESEND_API_KEY);
 }
 
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const { email, calculation } = body as {
-            email?: string;
-            calculation?: CalculationPayload;
-        };
-
-        if (!email || !calculation) {
-            return NextResponse.json(
-                { message: 'Отсутствуют email или данные расчета.' },
-                { status: 400 },
-            );
+export const POST = withRateLimit(
+    async (request: NextRequest) => {
+        const securityError = ensureProtectedMutationRequest(request);
+        if (securityError) {
+            return securityError;
         }
 
-        const resend = getResendClient();
-        const internalEmail = TOPCAR_NOTIFICATIONS_EMAIL || 'topcar_club@mail.ru';
+        try {
+            const body = await request.json();
+            const { email, calculation } = body as {
+                email?: string;
+                calculation?: CalculationPayload;
+            };
 
-        const subject = `Ваш расчет аренды ${calculation.carName} — TopCar`;
-        const html = `
+            if (!email || !calculation) {
+                return NextResponse.json(
+                    { message: 'Отсутствуют email или данные расчета.' },
+                    { status: 400 },
+                );
+            }
+
+            const resend = getResendClient();
+            const internalEmail =
+                TOPCAR_NOTIFICATIONS_EMAIL || 'topcar_club@mail.ru';
+
+            const subject = `Ваш расчет аренды ${calculation.carName} — TopCar`;
+            const html = `
             <div style="font-family: Inter, Arial, sans-serif; line-height: 1.6; color: #111;">
                 <h2 style="margin-bottom: 8px;">Ваш расчет аренды TopCar</h2>
                 <p style="margin-top: 0; color: #555;">Мы подготовили предварительный расчет по выбранным параметрам.</p>
@@ -66,37 +75,39 @@ export async function POST(request: Request) {
             </div>
         `;
 
-        if (!resend) {
-            console.log('Calculation email fallback:', { email, calculation });
-            return NextResponse.json({
-                message:
-                    'Расчет подготовлен. Для реальной email-отправки подключите RESEND_API_KEY.',
+            if (!resend) {
+                return NextResponse.json({
+                    message:
+                        'Расчет подготовлен. Для реальной email-отправки подключите RESEND_API_KEY.',
+                });
+            }
+
+            await resend.emails.send({
+                from: 'TopCar Club <webhook@topcar.club>',
+                to: [email],
+                bcc: [internalEmail],
+                subject,
+                html,
             });
-        }
 
-        await resend.emails.send({
-            from: 'TopCar Club <webhook@topcar.club>',
-            to: [email],
-            bcc: [internalEmail],
-            subject,
-            html,
-        });
+            return NextResponse.json({
+                message: `Расчет успешно отправлен на ${email}`,
+            });
+        } catch (err: unknown) {
+            if (err instanceof SyntaxError) {
+                return NextResponse.json(
+                    { message: 'Некорректное тело запроса (не JSON).' },
+                    { status: 400 },
+                );
+            }
 
-        return NextResponse.json({
-            message: `Расчет успешно отправлен на ${email}`,
-        });
-    } catch (err: unknown) {
-        if (err instanceof SyntaxError) {
+            console.error('Ошибка на сервере при отправке email:', err);
             return NextResponse.json(
-                { message: 'Некорректное тело запроса (не JSON).' },
-                { status: 400 },
+                { message: 'Внутренняя ошибка сервера.' },
+                { status: 500 },
             );
         }
-
-        console.error('Ошибка на сервере при отправке email:', err);
-        return NextResponse.json(
-            { message: 'Внутренняя ошибка сервера.' },
-            { status: 500 },
-        );
-    }
-}
+    },
+    RateLimitPresets.FORM_SUBMISSION,
+    'send-calculation',
+);

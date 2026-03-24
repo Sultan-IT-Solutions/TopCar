@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -20,7 +20,7 @@ type SecurityDocument = {
     description: string;
     sortOrder: number;
     status: 'available' | 'pending';
-    source: 'uploaded' | 'fallback' | 'missing';
+    source: 'uploaded' | 'missing';
     fileName?: string;
     viewUrl?: string;
     downloadUrl?: string;
@@ -29,7 +29,8 @@ type SecurityDocument = {
 export default function SecurityPage() {
     const { locale } = useTranslations();
     const [documents, setDocuments] = useState<SecurityDocument[]>([]);
-    const [hasLoadedDocuments, setHasLoadedDocuments] = useState(false);
+    const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
+    const [documentsError, setDocumentsError] = useState('');
     const content =
         locale === 'en'
             ? {
@@ -50,47 +51,12 @@ export default function SecurityPage() {
                           text: 'Managers and support remain available throughout the rental period.',
                       },
                   ],
-                  documents: [
-                      {
-                          name: 'Company registration documents',
-                          description:
-                              'Official registration scans will be published after final legal verification.',
-                          status: 'pending' as const,
-                      },
-                      {
-                          name: 'Licenses and certificates',
-                          description:
-                              'This block is prepared for official TopCar licenses and certificates.',
-                          status: 'pending' as const,
-                      },
-                      {
-                          name: 'Insurance coverage memo',
-                          description:
-                              'A short overview of the base insurance scope and how conditions are confirmed before handover.',
-                          fileUrl: '/docs/insurance-coverage.txt',
-                          status: 'available' as const,
-                      },
-                      {
-                          name: 'Data protection summary',
-                          description:
-                              'What data the service uses and how to request clarification or deletion.',
-                          fileUrl: '/docs/privacy-summary.txt',
-                          status: 'available' as const,
-                      },
-                      {
-                          name: 'Client and vehicle verification checklist',
-                          description:
-                              'A transparent sequence for checking documents, vehicle equipment, and starting rental conditions.',
-                          fileUrl: '/docs/client-verification-checklist.txt',
-                          status: 'available' as const,
-                      },
-                  ],
-                  availableLabel: 'Available for review',
-                  pendingLabel: 'Pending upload',
                   view: 'View',
                   download: 'Download',
-                  pendingNotice:
-                      'After legally approved files are uploaded, they will appear here without changing the page structure.',
+                  documentsEmpty:
+                      'Documents will appear here after they are uploaded in the admin panel.',
+                  documentsError:
+                      'The documents could not be loaded right now. Please try again later.',
                   ctaTitle: 'Need originals or official confirmation?',
                   ctaText:
                       'For corporate clients and special requests, our manager can provide up-to-date supporting materials and agree on a convenient transfer format.',
@@ -115,47 +81,12 @@ export default function SecurityPage() {
                             text: 'Менеджер мен қолдау қызметі бүкіл жалдау бағыты бойынша байланыста болады.',
                         },
                     ],
-                    documents: [
-                        {
-                            name: 'Компанияның тіркеу құжаттары',
-                            description:
-                                'Ресми тіркеу құжаттарының скан-көшірмелері соңғы заңдық тексеруден кейін жарияланады.',
-                            status: 'pending' as const,
-                        },
-                        {
-                            name: 'Лицензиялар мен сертификаттар',
-                            description:
-                                'Бұл блок TopCar-дың растаушы лицензиялары мен сертификаттарын орналастыруға дайындалған.',
-                            status: 'pending' as const,
-                        },
-                        {
-                            name: 'Сақтандыру жабыны туралы жадынама',
-                            description:
-                                'Негізгі сақтандыру контуры мен шарттарды көлік берілгенге дейін растау тәртібі туралы қысқаша түсіндірме.',
-                            fileUrl: '/docs/insurance-coverage.txt',
-                            status: 'available' as const,
-                        },
-                        {
-                            name: 'Деректерді қорғау туралы қысқаша жадынама',
-                            description:
-                                'Қандай деректер қолданылатыны және оларды нақтылау не жоюды қалай сұратуға болатыны көрсетілген.',
-                            fileUrl: '/docs/privacy-summary.txt',
-                            status: 'available' as const,
-                        },
-                        {
-                            name: 'Клиент пен көлікті тексеру чек-парағы',
-                            description:
-                                'Құжаттарды, көлік жинақтамасын және жалдау басталу шарттарын тексерудің ашық тәртібі.',
-                            fileUrl: '/docs/client-verification-checklist.txt',
-                            status: 'available' as const,
-                        },
-                    ],
-                    availableLabel: 'Қарауға қолжетімді',
-                    pendingLabel: 'Жүктеу күтілуде',
                     view: 'Қарау',
                     download: 'Жүктеу',
-                    pendingNotice:
-                        'Заңды түрде келісілген файлдар жүктелгеннен кейін олар осы жерде бет құрылымын өзгертпей көрсетіледі.',
+                    documentsEmpty:
+                        'Құжаттар админ-панель арқылы жүктелгеннен кейін осы жерде көрінеді.',
+                    documentsError:
+                        'Құжаттарды қазір жүктеу мүмкін болмады. Кейінірек қайталап көріңіз.',
                     ctaTitle: 'Түпнұсқалар немесе растау керек пе?',
                     ctaText:
                         'Корпоративтік клиенттер мен арнайы сұраныстар үшін менеджер өзекті растаушы материалдарды ыңғайлы форматта ұсына алады.',
@@ -179,47 +110,12 @@ export default function SecurityPage() {
                             text: 'Менеджер и служба поддержки остаются на связи на всем маршруте аренды.',
                         },
                     ],
-                    documents: [
-                        {
-                            name: 'Регистрационные документы компании',
-                            description:
-                                'Скан-копии официальных регистрационных документов публикуются после финальной юридической верификации.',
-                            status: 'pending' as const,
-                        },
-                        {
-                            name: 'Лицензии и сертификаты',
-                            description:
-                                'Блок подготовлен для размещения подтверждающих лицензий и сертификатов TopCar.',
-                            status: 'pending' as const,
-                        },
-                        {
-                            name: 'Памятка по страховому покрытию',
-                            description:
-                                'Краткое описание базового страхового контура и порядка подтверждения условий до выдачи автомобиля.',
-                            fileUrl: '/docs/insurance-coverage.txt',
-                            status: 'available' as const,
-                        },
-                        {
-                            name: 'Краткая памятка по защите данных',
-                            description:
-                                'Какие данные используются в сервисе и по каким каналам можно запросить уточнение или удаление информации.',
-                            fileUrl: '/docs/privacy-summary.txt',
-                            status: 'available' as const,
-                        },
-                        {
-                            name: 'Чек-лист проверки клиента и автомобиля',
-                            description:
-                                'Прозрачный порядок проверки документов, комплектации автомобиля и стартовых условий аренды.',
-                            fileUrl: '/docs/client-verification-checklist.txt',
-                            status: 'available' as const,
-                        },
-                    ],
-                    availableLabel: 'Доступно для просмотра',
-                    pendingLabel: 'Ожидает загрузки',
                     view: 'Просмотр',
                     download: 'Скачать',
-                    pendingNotice:
-                        'После загрузки юридически согласованных файлов документы появятся здесь без смены структуры страницы.',
+                    documentsEmpty:
+                        'Документы появятся здесь после загрузки через админ-панель.',
+                    documentsError:
+                        'Сейчас не удалось загрузить документы. Попробуйте позже.',
                     ctaTitle: 'Нужны оригиналы или подтверждение?',
                     ctaText:
                         'Для корпоративных клиентов и специальных запросов менеджер может предоставить актуальные подтверждающие материалы по запросу и согласовать удобный формат передачи документов.',
@@ -230,6 +126,9 @@ export default function SecurityPage() {
         let isActive = true;
 
         const loadDocuments = async () => {
+            setIsLoadingDocuments(true);
+            setDocumentsError('');
+
             try {
                 const response = await fetch(
                     `/api/company-documents?locale=${locale}`,
@@ -245,11 +144,15 @@ export default function SecurityPage() {
 
                 if (isActive && Array.isArray(data)) {
                     setDocuments(data);
-                    setHasLoadedDocuments(true);
                 }
             } catch {
                 if (isActive) {
-                    setHasLoadedDocuments(false);
+                    setDocuments([]);
+                    setDocumentsError(content.documentsError);
+                }
+            } finally {
+                if (isActive) {
+                    setIsLoadingDocuments(false);
                 }
             }
         };
@@ -259,31 +162,9 @@ export default function SecurityPage() {
         return () => {
             isActive = false;
         };
-    }, [locale]);
+    }, [content.documentsError, locale]);
 
-    const fallbackDocuments = useMemo<SecurityDocument[]>(
-        () =>
-            content.documents.map((document, index) => ({
-                slug: `fallback-${index}`,
-                title: document.name,
-                description: document.description,
-                sortOrder: index + 1,
-                status: document.status,
-                source:
-                    document.status === 'available' ? 'fallback' : 'missing',
-                fileName: document.fileUrl?.split('/').pop(),
-                viewUrl: document.fileUrl,
-                downloadUrl: document.fileUrl,
-            })),
-        [content.documents],
-    );
-
-    const displayedDocuments = useMemo(
-        () => (hasLoadedDocuments ? documents : fallbackDocuments),
-        [documents, fallbackDocuments, hasLoadedDocuments],
-    );
-
-    const publishedDocuments = displayedDocuments.filter(
+    const publishedDocuments = documents.filter(
         (doc) => doc.status === 'available',
     );
 
@@ -321,58 +202,76 @@ export default function SecurityPage() {
                             ))}
                         </div>
 
-                        <div className="mt-12 space-y-4">
-                            {publishedDocuments.map((doc) => {
-                                return (
-                                    <div
-                                        key={doc.slug}
-                                        className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-5 sm:p-6"
-                                    >
-                                        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                                            <div className="max-w-3xl">
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <DocumentTextIcon className="h-6 w-6 text-[#d4af37]" />
-                                                    <p className="text-lg font-semibold text-white">
-                                                        {doc.title}
-                                                    </p>
-                                                </div>
-                                                <p className="mt-3 text-sm leading-relaxed text-neutral-400">
-                                                    {doc.description}
-                                                </p>
-                                                {'source' in doc &&
-                                                    doc.source === 'uploaded' &&
-                                                    doc.fileName && (
-                                                        <p className="mt-2 text-xs text-neutral-500">
-                                                            {doc.fileName}
+                        <div className="mt-12">
+                            {isLoadingDocuments ? (
+                                <div className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-8 text-center text-neutral-400">
+                                    {locale === 'en'
+                                        ? 'Loading documents...'
+                                        : locale === 'kk'
+                                          ? 'Құжаттар жүктелуде...'
+                                          : 'Загрузка документов...'}
+                                </div>
+                            ) : documentsError ? (
+                                <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-8 text-center text-red-200">
+                                    {documentsError}
+                                </div>
+                            ) : publishedDocuments.length === 0 ? (
+                                <div className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-8 text-center text-neutral-400">
+                                    {content.documentsEmpty}
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {publishedDocuments.map((doc) => {
+                                        return (
+                                            <div
+                                                key={doc.slug}
+                                                className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-5 sm:p-6"
+                                            >
+                                                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                                                    <div className="max-w-3xl">
+                                                        <div className="flex flex-wrap items-center gap-3">
+                                                            <DocumentTextIcon className="h-6 w-6 text-[#d4af37]" />
+                                                            <p className="text-lg font-semibold text-white">
+                                                                {doc.title}
+                                                            </p>
+                                                        </div>
+                                                        <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+                                                            {doc.description}
                                                         </p>
-                                                    )}
-                                            </div>
+                                                        {doc.fileName && (
+                                                            <p className="mt-2 text-xs text-neutral-500">
+                                                                {doc.fileName}
+                                                            </p>
+                                                        )}
+                                                    </div>
 
-                                            <div className="flex items-center gap-3">
-                                                <a
-                                                    href={doc.viewUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-2 rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-neutral-500 hover:bg-neutral-800"
-                                                    title={content.view}
-                                                >
-                                                    <EyeIcon className="h-5 w-5" />
-                                                    {content.view}
-                                                </a>
-                                                <a
-                                                    href={doc.downloadUrl}
-                                                    download
-                                                    className="inline-flex items-center gap-2 rounded-2xl bg-[#d4af37] px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#c0982c]"
-                                                    title={content.download}
-                                                >
-                                                    <ArrowDownTrayIcon className="h-5 w-5" />
-                                                    {content.download}
-                                                </a>
+                                                    <div className="flex items-center gap-3">
+                                                        <a
+                                                            href={doc.viewUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-2 rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:border-neutral-500 hover:bg-neutral-800"
+                                                            title={content.view}
+                                                        >
+                                                            <EyeIcon className="h-5 w-5" />
+                                                            {content.view}
+                                                        </a>
+                                                        <a
+                                                            href={doc.downloadUrl}
+                                                            download
+                                                            className="inline-flex items-center gap-2 rounded-2xl bg-[#d4af37] px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#c0982c]"
+                                                            title={content.download}
+                                                        >
+                                                            <ArrowDownTrayIcon className="h-5 w-5" />
+                                                            {content.download}
+                                                        </a>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         <div className="mt-12 rounded-3xl border border-[#d4af37]/20 bg-[#d4af37]/10 p-6 sm:p-8">

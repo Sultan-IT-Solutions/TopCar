@@ -3,6 +3,7 @@
 import { useState, ChangeEvent } from 'react';
 import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
 import { formatPhoneNumber } from '@/lib/formatters';
+import { csrfClientHelper } from '@/lib/csrf-client';
 import InputField from '@/components/ui/InputField';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
@@ -32,7 +33,7 @@ export default function LoginModal({ onClose }: Props) {
                   unavailable:
                       'Sign-in is temporarily unavailable right now. Please try again a little later.',
                   signupSuccess:
-                      'Registration was successful. Please confirm your email.',
+                      'Registration was successful. You are now signed in.',
                   genericError: 'An error occurred. Please try again.',
                   signupTitle: 'Create a TopCar account',
                   loginTitle: 'Sign in to TopCar',
@@ -56,7 +57,7 @@ export default function LoginModal({ onClose }: Props) {
                     unavailable:
                         'Қазір кіру уақытша қолжетімсіз. Сәл кейінірек қайталап көріңіз.',
                     signupSuccess:
-                        'Тіркелу сәтті аяқталды. Email-ыңызды растаңыз.',
+                        'Тіркелу сәтті аяқталды. Сіз жүйеге кірдіңіз.',
                     genericError: 'Қате орын алды. Қайталап көріңіз.',
                     signupTitle: 'TopCar-ға тіркелу',
                     loginTitle: 'TopCar-ға кіру',
@@ -79,7 +80,7 @@ export default function LoginModal({ onClose }: Props) {
                     unavailable:
                         'Вход временно недоступен. Попробуйте еще раз немного позже.',
                     signupSuccess:
-                        'Регистрация прошла успешно! Пожалуйста, подтвердите ваш email.',
+                        'Регистрация прошла успешно. Вы вошли в аккаунт.',
                     genericError: 'Произошла ошибка. Попробуйте еще раз.',
                     signupTitle: 'Регистрация в TopCar',
                     loginTitle: 'Вход в TopCar',
@@ -122,25 +123,44 @@ export default function LoginModal({ onClose }: Props) {
                 throw new Error(copy.unavailable);
             }
 
+            const normalizedEmail = formData.email.trim().toLowerCase();
+            const normalizedPassword = formData.password;
+
             if (isSignup) {
-                const { error } = await supabase.auth.signUp({
-                    email: formData.email,
-                    password: formData.password,
-                    options: {
-                        data: {
-                            name: formData.name,
-                            phone: formData.phone.replace(/[^\d]/g, ''),
+                const registerResponse = await csrfClientHelper.fetch(
+                    '/api/auth/register',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
                         },
+                        body: JSON.stringify({
+                            name: formData.name,
+                            email: normalizedEmail,
+                            phone: formData.phone,
+                            password: normalizedPassword,
+                        }),
                     },
+                );
+                const registerResult = await registerResponse.json();
+
+                if (!registerResponse.ok) {
+                    throw new Error(
+                        registerResult.message || copy.genericError,
+                    );
+                }
+
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: normalizedEmail,
+                    password: normalizedPassword,
                 });
 
                 if (error) throw error;
-                alert(copy.signupSuccess);
                 onClose();
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
-                    email: formData.email,
-                    password: formData.password,
+                    email: normalizedEmail,
+                    password: normalizedPassword,
                 });
 
                 if (error) throw error;

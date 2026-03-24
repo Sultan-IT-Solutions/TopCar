@@ -78,6 +78,34 @@ export default function AdminBookingsPage() {
         }
     }, [admin]);
 
+    useEffect(() => {
+        if (!admin) {
+            return;
+        }
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void loadBookings();
+            }
+        };
+
+        const intervalId = window.setInterval(() => {
+            void loadBookings();
+        }, 15000);
+
+        window.addEventListener('focus', handleVisibilityChange);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.clearInterval(intervalId);
+            window.removeEventListener('focus', handleVisibilityChange);
+            document.removeEventListener(
+                'visibilitychange',
+                handleVisibilityChange,
+            );
+        };
+    }, [admin]);
+
     const filteredBookings = useMemo(() => {
         const normalized = searchTerm.trim().toLowerCase();
         if (!normalized) {

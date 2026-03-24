@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import CarCatalog from '@/components/CarCatalog';
 import LocalizedLink from '@/components/LocalizedLink';
-import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
 import { Car } from '@/types';
 import { useTranslations } from '@/lib/i18n';
 
@@ -15,26 +14,20 @@ export default function HomeCarCatalogSection() {
 
     useEffect(() => {
         const fetchCars = async () => {
-            if (!hasPublicSupabaseConfig()) {
-                setConfigMissing(true);
-                setIsLoading(false);
-                return;
-            }
-
             try {
-                const supabase = getSupabase();
-                const { data, error } = await supabase
-                    .from('cars')
-                    .select('*, prices (*)')
-                    .order('id');
+                const response = await fetch('/api/cars', {
+                    cache: 'no-store',
+                });
+                const payload = await response.json();
 
-                if (error) {
-                    console.error('Failed to load home car catalog:', error);
-                    setCars([]);
-                    return;
+                if (!response.ok) {
+                    throw new Error(
+                        payload.message || 'Не удалось загрузить автопарк.',
+                    );
                 }
 
-                setCars((data as Car[]) || []);
+                setCars(Array.isArray(payload.cars) ? (payload.cars as Car[]) : []);
+                setConfigMissing(Boolean(payload.configMissing));
             } catch (error) {
                 console.error('Failed to initialize home car catalog:', error);
                 setCars([]);

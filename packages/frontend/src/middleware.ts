@@ -91,7 +91,6 @@ function addSecurityHeaders(
         headers.set('Cache-Control', 'no-store, no-cache, max-age=0, must-revalidate');
         headers.set('Pragma', 'no-cache');
         headers.set('Expires', '0');
-        headers.set('Clear-Site-Data', '"cache", "storage"');
     }
 
     if (request.nextUrl.pathname.startsWith('/admin')) {

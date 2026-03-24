@@ -29,6 +29,7 @@ export type Car = {
     image_url: string;
     gallery_images?: string[];
     prices?: Price[];
+    price?: number;
     price_per_day: number;
     power?: number;
     acceleration?: number;

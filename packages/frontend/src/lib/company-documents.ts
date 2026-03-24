@@ -7,11 +7,10 @@ export type CompanyDocumentDefinition = {
     sortOrder: number;
     title: LocalizedValue;
     description: LocalizedValue;
-    fallbackPublicUrl?: string;
 };
 
 export type CompanyDocumentStatus = 'available' | 'pending';
-export type CompanyDocumentSource = 'uploaded' | 'fallback' | 'missing';
+export type CompanyDocumentSource = 'uploaded' | 'missing';
 
 export type CompanyDocumentRecord = {
     slug: string;
@@ -79,7 +78,6 @@ export const companyDocumentDefinitions: CompanyDocumentDefinition[] = [
             en: 'A short overview of the base insurance scope and how coverage is confirmed before handover.',
             kk: 'Негізгі сақтандыру жабыны мен көлік берілгенге дейін оны растау тәртібі туралы қысқаша түсіндірме.',
         },
-        fallbackPublicUrl: '/docs/insurance-coverage.txt',
     },
     {
         slug: 'privacy-summary',
@@ -94,7 +92,6 @@ export const companyDocumentDefinitions: CompanyDocumentDefinition[] = [
             en: 'What data the service uses and how to request clarification or deletion.',
             kk: 'Қандай деректер қолданылатыны және оларды нақтылау не жоюды қалай сұратуға болатыны туралы материал.',
         },
-        fallbackPublicUrl: '/docs/privacy-summary.txt',
     },
     {
         slug: 'client-verification-checklist',
@@ -109,7 +106,6 @@ export const companyDocumentDefinitions: CompanyDocumentDefinition[] = [
             en: 'A transparent sequence for checking documents, vehicle equipment and rental start conditions.',
             kk: 'Құжаттарды, көлік жинақтамасын және жалдау басталу шарттарын тексерудің ашық тәртібі.',
         },
-        fallbackPublicUrl: '/docs/client-verification-checklist.txt',
     },
 ];
 

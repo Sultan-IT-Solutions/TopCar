@@ -2,6 +2,83 @@ import type { Locale } from '@/lib/i18n';
 import { Car, Price } from '@/types';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const CYRILLIC_TO_LATIN: Record<string, string> = {
+    а: 'a',
+    ә: 'a',
+    б: 'b',
+    в: 'v',
+    г: 'g',
+    ғ: 'g',
+    д: 'd',
+    е: 'e',
+    ё: 'e',
+    ж: 'zh',
+    з: 'z',
+    и: 'i',
+    й: 'i',
+    і: 'i',
+    к: 'k',
+    қ: 'k',
+    л: 'l',
+    м: 'm',
+    н: 'n',
+    ң: 'n',
+    о: 'o',
+    ө: 'o',
+    п: 'p',
+    р: 'r',
+    с: 's',
+    т: 't',
+    у: 'u',
+    ұ: 'u',
+    ү: 'u',
+    ф: 'f',
+    х: 'h',
+    һ: 'h',
+    ц: 'ts',
+    ч: 'ch',
+    ш: 'sh',
+    щ: 'shch',
+    ъ: '',
+    ы: 'y',
+    ь: '',
+    э: 'e',
+    ю: 'yu',
+    я: 'ya',
+};
+
+function transliterateForSlug(value: string): string {
+    return Array.from(value.toLowerCase())
+        .map((char) => CYRILLIC_TO_LATIN[char] ?? char)
+        .join('');
+}
+
+export function slugifyCarValue(value: string): string {
+    return transliterateForSlug(value)
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-');
+}
+
+export function ensureCarSlug(
+    car: Pick<Car, 'id' | 'slug' | 'name' | 'brand'>,
+): string {
+    const normalizedExistingSlug = slugifyCarValue(car.slug || '');
+    if (normalizedExistingSlug) {
+        return normalizedExistingSlug;
+    }
+
+    const normalizedNameSlug = slugifyCarValue(
+        [car.brand, car.name].filter(Boolean).join('-'),
+    );
+    if (normalizedNameSlug) {
+        return normalizedNameSlug;
+    }
+
+    return `car-${car.id}`;
+}
 
 function normalizeTierBoundary(value: number): number {
     if (value >= 24 && value % 24 === 0) {
@@ -144,15 +221,7 @@ export function getMatchingPrice(
         return days >= from && days <= to;
     });
 
-    if (exactMatch) return exactMatch;
-
-    const fallback =
-        relevantPrices.find((price) => {
-            const from = normalizeTierBoundary(price.days_from);
-            return days <= from;
-        }) || relevantPrices[relevantPrices.length - 1];
-
-    return fallback || null;
+    return exactMatch || null;
 }
 
 export function calculateRentalTotal(

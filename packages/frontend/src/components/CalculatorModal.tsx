@@ -6,7 +6,6 @@ import {
     XMarkIcon,
     ChevronDownIcon,
     CheckCircleIcon,
-    EnvelopeIcon,
     BookmarkSquareIcon,
 } from '@heroicons/react/24/outline';
 import { Car } from '@/types';
@@ -16,7 +15,6 @@ import BookingModal from './BookingModal';
 import { useAuth } from '@/context/AuthContext';
 import { csrfClientHelper } from '@/lib/csrf-client';
 import { useTranslations } from '@/lib/i18n';
-import { emailSchema } from '@/lib/validation';
 import {
     calculateRentalTotal,
     formatPriceTierLabel,
@@ -39,6 +37,9 @@ type BookingDetails = {
     duration: string;
     price: number;
     conditions?: string;
+    carId?: number;
+    startDate?: string;
+    endDate?: string;
 };
 
 type StatusMessage = {
@@ -53,7 +54,7 @@ export default function CalculatorModal({
     onClose,
 }: CalculatorModalProps) {
     const { locale } = useTranslations();
-    const { user } = useAuth();
+    const { user, session } = useAuth();
     const [carsData, setCarsData] = useState<Car[]>([]);
     const [isCarsLoading, setIsCarsLoading] = useState(true);
     const [selectedCarId, setSelectedCarId] = useState<number | string>('');
@@ -61,13 +62,11 @@ export default function CalculatorModal({
         useState<ServiceType>('withoutDriver');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [deliveryEmail, setDeliveryEmail] = useState('');
     const [bookingInfo, setBookingInfo] = useState<{
         car: Car;
         details: BookingDetails;
     } | null>(null);
     const [statusMessage, setStatusMessage] = useState<StatusMessage>(null);
-    const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [isSavingCalculation, setIsSavingCalculation] = useState(false);
 
     const copy =
@@ -79,17 +78,14 @@ export default function CalculatorModal({
                       'We could not load the catalog for the calculation right now. Please try again a bit later.',
                   withDriver: 'With driver',
                   withoutDriver: 'Without driver',
-                  invalidEmail:
-                      'Enter a valid email address to receive the calculation.',
-                  emailSent: 'The calculation has been sent to your email.',
-                  sendError: 'Failed to send the calculation.',
                   loginToSave: 'Sign in to your account to save calculations.',
                   saved: 'The calculation has been saved to your account.',
-                  saveError: 'Failed to save the calculation.',
+                  saveError:
+                      'We could not save the estimate right now. Please try again again in a moment.',
                   fillParams: 'Fill in the calculation details first.',
                   title: 'Rental Calculator',
                   subtitle:
-                      'Choose a car, rental format, and travel dates. We will estimate the total cost for the full period and let you save or send the result immediately.',
+                      'Choose a car, rental format, and travel dates. We will estimate the total cost for the full period and let you continue with a request right away.',
                   availabilityNotice:
                       'Only cars currently available in the active fleet are included in the calculation.',
                   selectCar: '1. Choose a car',
@@ -101,16 +97,15 @@ export default function CalculatorModal({
                   endDate: '4. Return date',
                   noTariff:
                       'There is no matching tariff for the selected period yet. Leave a request and a manager will prepare an individual quote.',
+                  noFormatTariff:
+                      'This rental format is being confirmed individually for the selected car. Leave a request and a manager will prepare the final offer.',
                   summary: 'Preliminary estimate',
                   total: 'Total price',
                   tariff: 'Tariff',
                   perDay: 'Daily rate',
                   availability: 'Availability',
                   availableForDates: 'Available for selected dates',
-                  emailLabel: 'Email for delivery',
-                  sendButton: 'To email',
-                  sending: 'Sending...',
-                  saveButton: 'To account',
+                  saveButton: 'Save estimate',
                   saving: 'Saving...',
                   requestButton: 'Create request',
               }
@@ -122,17 +117,15 @@ export default function CalculatorModal({
                         'Қазір есептеу үшін каталогты жүктеу мүмкін болмады. Сәл кейінірек қайталап көріңіз.',
                     withDriver: 'Жүргізушімен',
                     withoutDriver: 'Жүргізушісіз',
-                    invalidEmail: 'Есепті жіберу үшін жарамды email енгізіңіз.',
-                    emailSent: 'Есеп email-ға жіберілді.',
-                    sendError: 'Жіберу қатесі.',
                     loginToSave:
                         'Есептерді сақтау үшін жеке кабинетке кіріңіз.',
                     saved: 'Есеп жеке кабинетке сақталды.',
-                    saveError: 'Сақтау қатесі.',
+                    saveError:
+                        'Есепті қазір сақтау мүмкін болмады. Сәл кейінірек қайталап көріңіз.',
                     fillParams: 'Алдымен есептеу параметрлерін толтырыңыз.',
                     title: 'Жалдау калькуляторы',
                     subtitle:
-                        'Көлікті, жалдау форматын және сапар күндерін таңдаңыз. Біз бүкіл кезең үшін алдын ала құнын есептеп, нәтижені бірден сақтауға немесе жіберуге көмектесеміз.',
+                        'Көлікті, жалдау форматын және сапар күндерін таңдаңыз. Біз бүкіл кезең үшін алдын ала құнын есептеп, сұранысты бірден рәсімдеуге көмектесеміз.',
                     availabilityNotice:
                         'Есепке тек қолжетімді автопарктегі көліктер ғана енгізілген.',
                     selectCar: '1. Көлікті таңдаңыз',
@@ -144,16 +137,15 @@ export default function CalculatorModal({
                     endDate: '4. Қайтару күні',
                     noTariff:
                         'Таңдалған кезеңге сәйкес тариф әзірге жоқ. Өтінім қалдырыңыз, менеджер жеке есеп дайындайды.',
+                    noFormatTariff:
+                        'Осы көлік үшін таңдалған жалдау форматы жеке нақтыланады. Өтінім қалдырыңыз, менеджер соңғы ұсынысты дайындайды.',
                     summary: 'Алдын ала есеп',
                     total: 'Жалпы құны',
                     tariff: 'Тариф',
                     perDay: 'Тәуліктік баға',
                     availability: 'Қолжетімділік',
                     availableForDates: 'Таңдалған күндерге қолжетімді',
-                    emailLabel: 'Есеп жіберілетін email',
-                    sendButton: 'Email-ға',
-                    sending: 'Жіберілуде...',
-                    saveButton: 'Кабинетке',
+                    saveButton: 'Есепті сақтау',
                     saving: 'Сақталуда...',
                     requestButton: 'Өтінім рәсімдеу',
                 }
@@ -164,18 +156,15 @@ export default function CalculatorModal({
                         'Сейчас не удалось загрузить каталог для расчета. Попробуйте еще раз немного позже.',
                     withDriver: 'С водителем',
                     withoutDriver: 'Без водителя',
-                    invalidEmail:
-                        'Укажите корректный email для отправки расчета.',
-                    emailSent: 'Расчет отправлен на email.',
-                    sendError: 'Ошибка отправки.',
                     loginToSave:
                         'Войдите в личный кабинет, чтобы сохранять расчеты.',
                     saved: 'Расчет сохранен в личный кабинет.',
-                    saveError: 'Ошибка сохранения.',
+                    saveError:
+                        'Сейчас не удалось сохранить расчет. Попробуйте еще раз немного позже.',
                     fillParams: 'Сначала заполните параметры расчета.',
                     title: 'Калькулятор аренды',
                     subtitle:
-                        'Выберите автомобиль, формат аренды и даты поездки. Мы рассчитаем предварительную стоимость за весь период и поможем сразу сохранить или отправить результат.',
+                        'Выберите автомобиль, формат аренды и даты поездки. Мы рассчитаем предварительную стоимость за весь период и поможем сразу перейти к заявке.',
                     availabilityNotice:
                         'В расчет включены только доступные автомобили из текущего ассортимента.',
                     selectCar: '1. Выберите автомобиль',
@@ -187,16 +176,15 @@ export default function CalculatorModal({
                     endDate: '4. Дата возврата',
                     noTariff:
                         'Для выбранного периода пока нет подходящего тарифа. Оставьте заявку, и менеджер подготовит индивидуальный расчет.',
+                    noFormatTariff:
+                        'Для выбранного формата аренды условия уточняются индивидуально. Оставьте заявку, и менеджер подготовит подходящий вариант.',
                     summary: 'Предварительный расчет',
                     total: 'Итоговая стоимость',
                     tariff: 'Тариф',
                     perDay: 'Цена в сутки',
                     availability: 'Доступность',
                     availableForDates: 'В выбранные даты',
-                    emailLabel: 'Email для отправки расчета',
-                    sendButton: 'На email',
-                    sending: 'Отправка...',
-                    saveButton: 'В кабинет',
+                    saveButton: 'Сохранить расчет',
                     saving: 'Сохранение...',
                     requestButton: 'Оформить заявку',
                 };
@@ -241,10 +229,7 @@ export default function CalculatorModal({
     useEffect(() => {
         if (!isOpen) return;
         setStatusMessage(null);
-        if (!deliveryEmail && user?.email) {
-            setDeliveryEmail(user.email);
-        }
-    }, [isOpen, user, deliveryEmail]);
+    }, [isOpen]);
 
     useEffect(() => {
         if (startDate && endDate && endDate < startDate) {
@@ -269,14 +254,75 @@ export default function CalculatorModal({
         [startDate, endDate],
     );
 
+    const servicePrices = useMemo(() => {
+        if (!selectedCar) {
+            return [];
+        }
+
+        return (selectedCar.prices || []).filter(
+            (price) => price.with_driver === (serviceType === 'withDriver'),
+        );
+    }, [selectedCar, serviceType]);
+
     const selectedPriceInfo = useMemo(() => {
         if (!selectedCar || !rentalDays) return null;
-        return getMatchingPrice(
+        const matchedPrice = getMatchingPrice(
             selectedCar.prices || [],
             rentalDays,
             serviceType === 'withDriver',
         );
-    }, [selectedCar, rentalDays, serviceType]);
+
+        if (matchedPrice) {
+            return matchedPrice;
+        }
+
+        // Fallback for cars that only have a base daily price in the cars table
+        // but do not yet have explicit price tiers in the prices table.
+        if (serviceType === 'withoutDriver') {
+            const fallbackPrice =
+                selectedCar.price_per_day || selectedCar.price || 0;
+
+            if (fallbackPrice > 0) {
+                return {
+                    id: 0,
+                    car_id: selectedCar.id,
+                    days_from: rentalDays,
+                    days_to: rentalDays,
+                    price_per_day: fallbackPrice,
+                    with_driver: false,
+                    conditions:
+                        locale === 'en'
+                            ? 'Base daily rate'
+                            : locale === 'kk'
+                              ? 'Негізгі тәуліктік тариф'
+                              : 'Базовый посуточный тариф',
+                };
+            }
+        }
+
+        return null;
+    }, [locale, selectedCar, rentalDays, serviceType]);
+
+    const tariffWarningText = useMemo(() => {
+        if (!selectedCar || !startDate || !endDate || selectedPriceInfo) {
+            return null;
+        }
+
+        if (serviceType === 'withDriver' && servicePrices.length === 0) {
+            return copy.noFormatTariff;
+        }
+
+        return copy.noTariff;
+    }, [
+        copy.noFormatTariff,
+        copy.noTariff,
+        endDate,
+        selectedCar,
+        selectedPriceInfo,
+        servicePrices.length,
+        serviceType,
+        startDate,
+    ]);
 
     const totalPrice = useMemo(
         () => calculateRentalTotal(selectedPriceInfo, rentalDays),
@@ -322,51 +368,6 @@ export default function CalculatorModal({
         setStatusMessage(null);
     };
 
-    const handleSendCalculation = async () => {
-        if (!calculation) return;
-
-        const parsedEmail = emailSchema.safeParse(deliveryEmail);
-        if (!parsedEmail.success) {
-            setStatusMessage({
-                type: 'error',
-                text: copy.invalidEmail,
-            });
-            return;
-        }
-
-        setIsSendingEmail(true);
-        setStatusMessage(null);
-
-        try {
-            const response = await fetch('/api/send-calculation', {
-                method: 'POST',
-                headers: csrfClientHelper.addTokenToHeaders({
-                    'Content-Type': 'application/json',
-                }),
-                body: JSON.stringify({
-                    email: deliveryEmail,
-                    calculation,
-                }),
-            });
-
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || `HTTP ${response.status}`);
-            }
-
-            setStatusMessage({
-                type: 'success',
-                text: data.message || copy.emailSent,
-            });
-        } catch (error) {
-            const message =
-                error instanceof Error ? error.message : copy.sendError;
-            setStatusMessage({ type: 'error', text: message });
-        } finally {
-            setIsSendingEmail(false);
-        }
-    };
-
     const handleSaveCalculation = async () => {
         if (!calculation) return;
 
@@ -386,23 +387,30 @@ export default function CalculatorModal({
                 method: 'POST',
                 headers: csrfClientHelper.addTokenToHeaders({
                     'Content-Type': 'application/json',
+                    ...(session?.access_token
+                        ? {
+                              Authorization: `Bearer ${session.access_token}`,
+                          }
+                        : {}),
                 }),
                 body: JSON.stringify({ calculation }),
             });
 
-            const data = await response.json();
+            await response.json();
             if (!response.ok) {
-                throw new Error(data.message || `HTTP ${response.status}`);
+                throw new Error(copy.saveError);
             }
 
             setStatusMessage({
                 type: 'success',
-                text: data.message || copy.saved,
+                text: copy.saved,
             });
         } catch (error) {
-            const message =
-                error instanceof Error ? error.message : copy.saveError;
-            setStatusMessage({ type: 'error', text: message });
+            setStatusMessage({
+                type: 'error',
+                text:
+                    error instanceof Error ? error.message : copy.saveError,
+            });
         } finally {
             setIsSavingCalculation(false);
         }
@@ -420,10 +428,13 @@ export default function CalculatorModal({
         setBookingInfo({
             car: selectedCar,
             details: {
+                carId: selectedCar.id,
                 serviceType: calculation.serviceType,
                 duration: `${calculation.duration} • ${calculation.rentalPeriod}`,
                 price: calculation.price,
                 conditions: calculation.conditions,
+                startDate,
+                endDate,
             },
         });
         onClose();
@@ -612,12 +623,9 @@ export default function CalculatorModal({
                                             </>
                                         )}
 
-                                        {selectedCar &&
-                                            startDate &&
-                                            endDate &&
-                                            !selectedPriceInfo && (
+                                        {tariffWarningText && (
                                                 <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                                                    {copy.noTariff}
+                                                    {tariffWarningText}
                                                 </div>
                                             )}
 
@@ -699,28 +707,6 @@ export default function CalculatorModal({
                                                     </div>
                                                 </div>
 
-                                                <div className="mt-5 rounded-2xl border border-neutral-800 bg-neutral-900/80 p-4">
-                                                    <label
-                                                        htmlFor="calculationEmail"
-                                                        className="mb-2 block text-sm font-medium text-neutral-300"
-                                                    >
-                                                        {copy.emailLabel}
-                                                    </label>
-                                                    <input
-                                                        id="calculationEmail"
-                                                        type="email"
-                                                        placeholder="example@mail.com"
-                                                        value={deliveryEmail}
-                                                        onChange={(event) =>
-                                                            setDeliveryEmail(
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                        className="w-full rounded-xl border border-neutral-600 bg-neutral-800 px-3 py-3 text-base text-white focus:border-[#d4af37] focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
-                                                    />
-                                                </div>
-
                                                 {statusMessage && (
                                                     <div
                                                         className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
@@ -737,22 +723,7 @@ export default function CalculatorModal({
                                                     </div>
                                                 )}
 
-                                                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={
-                                                            handleSendCalculation
-                                                        }
-                                                        disabled={
-                                                            isSendingEmail
-                                                        }
-                                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-600 bg-neutral-800 px-4 py-3 text-sm font-semibold text-white transition-colors hover:border-neutral-500 hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                                    >
-                                                        <EnvelopeIcon className="h-5 w-5" />
-                                                        {isSendingEmail
-                                                            ? copy.sending
-                                                            : copy.sendButton}
-                                                    </button>
+                                                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                                     <button
                                                         type="button"
                                                         onClick={

@@ -1,6 +1,6 @@
 // src/app/autopark/page.tsx
 import AutoparkPageView from '@/components/AutoparkPageView';
-import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
+import { loadCarsCatalog } from '@/lib/cars-server';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -19,23 +19,11 @@ export const metadata: Metadata = {
 };
 
 export default async function AutoparkPage() {
-    let cars = null;
-    let error = null;
-    const configMissing = !hasPublicSupabaseConfig();
-
-    if (!configMissing) {
-        const supabase = getSupabase();
-        const response = await supabase
-            .from('cars')
-            .select('*, prices (* )')
-            .order('id');
-        cars = response.data;
-        error = response.error;
-    }
+    const { cars, error, configMissing } = await loadCarsCatalog();
 
     return (
         <AutoparkPageView
-            cars={cars || []}
+            cars={cars}
             isLoading={!!error}
             configMissing={configMissing}
         />

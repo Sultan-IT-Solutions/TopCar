@@ -16,7 +16,8 @@ type CalculationPayload = {
     conditions?: string;
 };
 
-const { RESEND_API_KEY, TOPCAR_NOTIFICATIONS_EMAIL } = process.env;
+const { RESEND_API_KEY, RESEND_FROM_EMAIL, TOPCAR_NOTIFICATIONS_EMAIL } =
+    process.env;
 
 function formatCurrency(value: number) {
     return value.toLocaleString('ru-RU');
@@ -25,6 +26,16 @@ function formatCurrency(value: number) {
 function getResendClient() {
     if (!RESEND_API_KEY) return null;
     return new Resend(RESEND_API_KEY);
+}
+
+function getResendFromEmail() {
+    if (RESEND_FROM_EMAIL) {
+        return RESEND_FROM_EMAIL;
+    }
+
+    return process.env.NODE_ENV === 'production'
+        ? null
+        : 'TopCar Club <onboarding@resend.dev>';
 }
 
 export const POST = withRateLimit(
@@ -75,6 +86,8 @@ export const POST = withRateLimit(
             </div>
         `;
 
+            const fromEmail = getResendFromEmail();
+
             if (!resend) {
                 return NextResponse.json({
                     message:
@@ -82,8 +95,18 @@ export const POST = withRateLimit(
                 });
             }
 
+            if (!fromEmail) {
+                return NextResponse.json(
+                    {
+                        message:
+                            'Email-отправка не настроена: укажите RESEND_FROM_EMAIL с подтвержденным адресом отправителя.',
+                    },
+                    { status: 500 },
+                );
+            }
+
             await resend.emails.send({
-                from: 'TopCar Club <webhook@topcar.club>',
+                from: fromEmail,
                 to: [email],
                 bcc: [internalEmail],
                 subject,

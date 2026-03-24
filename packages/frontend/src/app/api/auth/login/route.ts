@@ -13,18 +13,22 @@ export const POST = withRateLimit(
         }
 
         const { email, password } = await request.json();
+        const normalizedEmail = String(email ?? '')
+            .trim()
+            .toLowerCase();
+        const normalizedPassword = String(password ?? '');
         const cookieStore = cookies();
         const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+                email: normalizedEmail,
+                password: normalizedPassword,
             });
 
             if (error) {
                 return NextResponse.json(
-                    { message: error.message },
+                    { message: 'Неверный email или пароль.' },
                     { status: 401 },
                 );
             }

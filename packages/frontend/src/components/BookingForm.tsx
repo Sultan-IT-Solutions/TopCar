@@ -15,6 +15,7 @@ import InputField, { HeroIconType } from '@/components/ui/InputField';
 import { csrfClientHelper } from '@/lib/csrf-client';
 import { formatPhoneNumber } from '@/lib/formatters';
 import { useTranslations } from '@/lib/i18n';
+import { useAuth } from '@/context/AuthContext';
 
 // Иконка-заглушка для автомобиля
 const CarIconPlaceholder: HeroIconType = React.forwardRef<
@@ -41,6 +42,7 @@ type BookingFormProps = {
 
 export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
     const { t, locale } = useTranslations();
+    const { session } = useAuth();
     const [formData, setFormData] = useState({
         carName: initialCarName,
         dateFrom: '',
@@ -102,6 +104,8 @@ export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
                 serviceType: bookingSourceLabel,
                 duration: `${t('common.from')} ${dateFrom} ${t('common.to')} ${dateTo}`,
                 price: 0,
+                dateFrom,
+                dateTo,
             },
         };
 
@@ -110,6 +114,11 @@ export default function BookingForm({ initialCarName = '' }: BookingFormProps) {
                 method: 'POST',
                 headers: csrfClientHelper.addTokenToHeaders({
                     'Content-Type': 'application/json',
+                    ...(session?.access_token
+                        ? {
+                              Authorization: `Bearer ${session.access_token}`,
+                          }
+                        : {}),
                 }),
                 body: JSON.stringify(submissionData),
             });

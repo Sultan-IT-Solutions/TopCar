@@ -1,18 +1,15 @@
 // src/app/api/user/promocodes/route.ts
 import { NextRequest } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { jsonNoStore } from '@/lib/admin-route';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
+import { getRequestUser } from '@/lib/user-session';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
-export const GET = withRateLimit(async (_request: NextRequest) => {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+export const GET = withRateLimit(async (request: NextRequest) => {
+    const supabase = getSupabaseAdmin();
 
     try {
-        const {
-            data: { user },
-        } = await supabase.auth.getUser();
+        const user = await getRequestUser(request);
 
         if (!user) {
             return jsonNoStore(

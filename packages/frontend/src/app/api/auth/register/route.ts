@@ -1,9 +1,32 @@
-// src/app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { ensureProtectedMutationRequest } from '@/lib/request-security';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+
+function normalizePhone(value: unknown) {
+    const normalized = String(value ?? '')
+        .replace(/[^\d+]/g, '')
+        .trim();
+    return normalized || null;
+}
+
+function getAuthErrorMessage(message: string) {
+    const normalized = message.toLowerCase();
+
+    if (
+        normalized.includes('already') ||
+        normalized.includes('registered') ||
+        normalized.includes('duplicate')
+    ) {
+        return 'Пользователь с таким email уже зарегистрирован.';
+    }
+
+    if (normalized.includes('password')) {
+        return 'Пароль не соответствует требованиям безопасности.';
+    }
+
+    return message;
+}
 
 export const POST = withRateLimit(
     async (request: NextRequest) => {
@@ -13,47 +36,87 @@ export const POST = withRateLimit(
         }
 
         const { name, email, phone, password } = await request.json();
-        const cookieStore = cookies();
-        const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+        const normalizedName = String(name ?? '').trim();
+        const normalizedEmail = String(email ?? '')
+            .trim()
+            .toLowerCase();
+        const normalizedPhone = normalizePhone(phone);
+        const normalizedPassword = String(password ?? '');
 
         try {
-            const { data: users, error: userError } = await supabase
-                .from('users')
-                .select('email')
-                .eq('email', email);
-
-            if (userError) throw userError;
-
-            if (users && users.length > 0) {
+            if (
+                !normalizedName ||
+                !normalizedEmail ||
+                !normalizedPassword ||
+                normalizedPassword.length < 8
+            ) {
                 return NextResponse.json(
-                    { message: 'Пользователь с таким email уже существует' },
-                    { status: 409 },
-                );
-            }
-
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        name,
-                        phone,
+                    {
+                        message:
+                            'Укажите имя, корректный email и пароль длиной не менее 8 символов.',
                     },
-                },
-            });
-
-            if (error) {
-                return NextResponse.json(
-                    { message: error.message },
                     { status: 400 },
                 );
             }
 
+            const supabase = getSupabaseAdmin();
+            const { data, error } = await supabase.auth.admin.createUser({
+                email: normalizedEmail,
+                password: normalizedPassword,
+                email_confirm: true,
+                user_metadata: {
+                    name: normalizedName,
+                    full_name: normalizedName,
+                    phone: normalizedPhone,
+                },
+            });
+
+            if (error) {
+                const normalizedMessage = String(error.message).toLowerCase();
+                const status =
+                    normalizedMessage.includes('already') ||
+                    normalizedMessage.includes('registered') ||
+                    normalizedMessage.includes('duplicate')
+                        ? 409
+                        : 400;
+
+                return NextResponse.json(
+                    { message: getAuthErrorMessage(error.message) },
+                    { status },
+                );
+            }
+
             if (data.user) {
+                const { error: profileError } = await supabase
+                    .from('users')
+                    .upsert(
+                        {
+                            id: data.user.id,
+                            email: normalizedEmail,
+                            full_name: normalizedName,
+                            phone: normalizedPhone,
+                        },
+                        { onConflict: 'id' },
+                    );
+
+                if (profileError) {
+                    await supabase.auth.admin.deleteUser(data.user.id);
+
+                    return NextResponse.json(
+                        {
+                            message:
+                                'Не удалось сохранить профиль пользователя в базе данных. Регистрация отменена.',
+                        },
+                        { status: 500 },
+                    );
+                }
+
                 return NextResponse.json({
-                    message:
-                        'Регистрация прошла успешно. Пожалуйста, подтвердите ваш email.',
-                    user: data.user,
+                    message: 'Регистрация прошла успешно.',
+                    user: {
+                        id: data.user.id,
+                        email: data.user.email,
+                    },
                 });
             }
 

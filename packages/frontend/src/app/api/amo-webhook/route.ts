@@ -4,12 +4,23 @@ import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
-const { RESEND_API_KEY } = process.env;
+const { RESEND_API_KEY, RESEND_FROM_EMAIL, TOPCAR_NOTIFICATIONS_EMAIL } =
+    process.env;
 const { AMO_WEBHOOK_SECRET } = process.env;
 
 function getResendClient() {
     if (!RESEND_API_KEY) return null;
     return new Resend(RESEND_API_KEY);
+}
+
+function getResendFromEmail() {
+    if (RESEND_FROM_EMAIL) {
+        return RESEND_FROM_EMAIL;
+    }
+
+    return process.env.NODE_ENV === 'production'
+        ? null
+        : 'TopCar Club <onboarding@resend.dev>';
 }
 
 function isAuthorizedWebhookRequest(request: NextRequest) {
@@ -49,10 +60,12 @@ export const POST = withRateLimit(async (req: NextRequest) => {
         const contactPhone = payload.phone || payload.contact_phone || '—';
 
         const resend = getResendClient();
-        if (resend) {
+        const fromEmail = getResendFromEmail();
+
+        if (resend && fromEmail && TOPCAR_NOTIFICATIONS_EMAIL) {
             await resend.emails.send({
-                from: 'Вебхук TopCar <webhook@topcar.club>',
-                to: 'topcar_club@mail.ru',
+                from: fromEmail,
+                to: TOPCAR_NOTIFICATIONS_EMAIL,
                 subject: `Новый вебхук из amoCRM: ${event}`,
                 html: `
           <div style="font-family: sans-serif; line-height: 1.6;">

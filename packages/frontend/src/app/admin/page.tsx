@@ -3,7 +3,15 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { ArrowPathIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, DocumentTextIcon, TicketIcon, TruckIcon } from '@heroicons/react/24/outline';
+import {
+    ArrowPathIcon,
+    ArrowRightOnRectangleIcon,
+    Cog6ToothIcon,
+    DocumentTextIcon,
+    TagIcon,
+    TicketIcon,
+    TruckIcon,
+} from '@heroicons/react/24/outline';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import FadeInWhenVisible from '@/components/FadeInWhenVisible';
 import { useAdminSession } from '@/hooks/useAdminSession';
@@ -22,6 +30,14 @@ const adminNavItems = [
         href: '/admin/cars',
         Icon: TruckIcon,
         accent: 'text-emerald-400',
+    },
+    {
+        name: 'Тарифы и форматы',
+        description:
+            'Отдельные цены без водителя и с водителем по диапазонам дней для калькулятора аренды.',
+        href: '/admin/tariffs',
+        Icon: TagIcon,
+        accent: 'text-violet-300',
     },
     {
         name: 'Документы компании',
@@ -80,7 +96,7 @@ export default function AdminDashboardPage() {
                             </p>
                         </FadeInWhenVisible>
 
-                        <div className="grid gap-6 md:grid-cols-2">
+                        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-2">
                             {adminNavItems.map((item, index) => (
                                 <FadeInWhenVisible key={item.href} delay={index * 0.08}>
                                     <Link

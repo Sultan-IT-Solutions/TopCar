@@ -139,20 +139,6 @@ export async function getCompanyDocuments(locale: SupportedLocale) {
                 } satisfies CompanyDocumentRecord;
             }
 
-            if (definition.fallbackPublicUrl) {
-                return {
-                    slug: definition.slug,
-                    title: localized.title,
-                    description: localized.description,
-                    sortOrder: definition.sortOrder,
-                    status: 'available',
-                    source: 'fallback',
-                    fileName: definition.fallbackPublicUrl.split('/').pop(),
-                    viewUrl: definition.fallbackPublicUrl,
-                    downloadUrl: definition.fallbackPublicUrl,
-                } satisfies CompanyDocumentRecord;
-            }
-
             return {
                 slug: definition.slug,
                 title: localized.title,

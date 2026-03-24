@@ -47,6 +47,11 @@ type SelectedTariff = {
     duration: string;
     price: number;
     carId?: number;
+    startDate?: string;
+    endDate?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    conditions?: string;
 };
 
 type Props = {
@@ -110,7 +115,7 @@ export default function BookingModal({
     bookingDetails,
 }: Props) {
     const { locale } = useTranslations();
-    const { user } = useAuth();
+    const { user, session } = useAuth();
     const [userName, setUserName] = useState('');
     const [userPhone, setUserPhone] = useState('');
     const [loading, setLoading] = useState(false);
@@ -237,7 +242,15 @@ export default function BookingModal({
             carName,
             userName,
             userPhone: cleanedPhone,
-            bookingDetails,
+            bookingDetails: bookingDetails
+                ? {
+                      ...bookingDetails,
+                      dateFrom:
+                          bookingDetails.dateFrom || bookingDetails.startDate,
+                      dateTo:
+                          bookingDetails.dateTo || bookingDetails.endDate,
+                  }
+                : undefined,
         };
 
         try {
@@ -245,6 +258,11 @@ export default function BookingModal({
                 method: 'POST',
                 headers: csrfClientHelper.addTokenToHeaders({
                     'Content-Type': 'application/json',
+                    ...(session?.access_token
+                        ? {
+                              Authorization: `Bearer ${session.access_token}`,
+                          }
+                        : {}),
                 }),
                 body: JSON.stringify(payload),
             });

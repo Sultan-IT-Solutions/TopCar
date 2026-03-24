@@ -24,7 +24,7 @@ type AdminCompanyDocument = {
     description: string;
     sortOrder: number;
     status: 'available' | 'pending';
-    source: 'uploaded' | 'fallback' | 'missing';
+    source: 'uploaded' | 'missing';
     fileName?: string;
     mimeType?: string | null;
     sizeBytes?: number | null;
@@ -367,9 +367,7 @@ export default function AdminUploadPage() {
                                                         }`}
                                                     >
                                                         {document.status === 'available'
-                                                            ? document.source === 'uploaded'
-                                                                ? 'Загружен в админке'
-                                                                : 'Стандартный материал'
+                                                            ? 'Загружен в админке'
                                                             : 'Ожидает загрузки'}
                                                     </span>
                                                 </div>

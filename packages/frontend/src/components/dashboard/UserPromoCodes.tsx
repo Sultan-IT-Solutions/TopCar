@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from '@/lib/i18n';
+import { useAuth } from '@/context/AuthContext';
 import {
     TagIcon,
     CheckCircle,
@@ -29,6 +30,7 @@ function formatDiscount(code: PromoCodeItem) {
 
 export default function UserPromoCodes() {
     const { locale } = useTranslations();
+    const { session, isLoading: isLoadingAuth } = useAuth();
     const [promoCodes, setPromoCodes] = useState<PromoCodeItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -92,9 +94,25 @@ export default function UserPromoCodes() {
                 };
 
     useEffect(() => {
+        if (isLoadingAuth) {
+            return;
+        }
+
         const fetchPromoCodes = async () => {
+            if (!session?.access_token) {
+                setPromoCodes([]);
+                setError(content.loadError);
+                setLoading(false);
+                return;
+            }
+
             try {
-                const response = await fetch('/api/user/promocodes');
+                const response = await fetch('/api/user/promocodes', {
+                    credentials: 'same-origin',
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                });
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -111,8 +129,8 @@ export default function UserPromoCodes() {
             }
         };
 
-        fetchPromoCodes();
-    }, [content.loadError]);
+        void fetchPromoCodes();
+    }, [content.loadError, isLoadingAuth, session?.access_token]);
 
     const handleCopy = async (code: string) => {
         try {

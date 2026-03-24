@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import { Zap, Fuel, Dna, Users, Info, ClockIcon } from 'lucide-react';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
-import BookingForm from '@/components/BookingForm';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import LocalizedLink from '@/components/LocalizedLink';
@@ -32,8 +31,6 @@ export default function CarDetailPageView({
                   acceleration: '0-100 km/h',
                   seconds: 'sec',
                   notAvailable: 'n/a',
-                  requestTitle: 'Booking',
-                  requestAccent: 'request',
               }
             : locale === 'kk'
               ? {
@@ -47,8 +44,6 @@ export default function CarDetailPageView({
                     acceleration: '0-100 км/сағ',
                     seconds: 'сек',
                     notAvailable: 'жоқ',
-                    requestTitle: 'Брондау',
-                    requestAccent: 'өтінімі',
                 }
               : {
                     breadcrumbs: 'Хлебные крошки',
@@ -61,8 +56,6 @@ export default function CarDetailPageView({
                     acceleration: 'Разгон до 100',
                     seconds: 'сек',
                     notAvailable: 'н/д',
-                    requestTitle: 'Заявка на',
-                    requestAccent: 'бронирование',
                 };
 
     const features = [
@@ -254,18 +247,6 @@ export default function CarDetailPageView({
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-
-                            <div className="border-t border-neutral-800 pt-6">
-                                <h3 className="mb-6 mt-8 text-2xl font-bold text-white">
-                                    {copy.requestTitle}{' '}
-                                    <span className="text-[#d4af37]">
-                                        {copy.requestAccent}
-                                    </span>
-                                </h3>
-                                <div className="flex flex-col gap-6">
-                                    <BookingForm initialCarName={car.name} />
-                                </div>
                             </div>
                         </div>
                     </div>

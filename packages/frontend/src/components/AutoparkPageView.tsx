@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import LocalizedLink from '@/components/LocalizedLink';
 import SEOBlock from '@/components/SEOBlock';
+import { getCarCategories, isCarAvailable } from '@/lib/car-utils';
 import { Car } from '@/types';
 import { useTranslations } from '@/lib/i18n';
 
@@ -19,6 +20,8 @@ export default function AutoparkPageView({
     configMissing: boolean;
 }) {
     const { t, locale } = useTranslations();
+    const availableCarsCount = cars.filter(isCarAvailable).length;
+    const categoriesCount = getCarCategories(cars).length;
 
     const configMessage =
         locale === 'en'
@@ -26,6 +29,24 @@ export default function AutoparkPageView({
             : locale === 'kk'
               ? 'Автопарк бөлімі жаңартылып жатыр. Егер сізге көлік дәл қазір қажет болса, менеджер қолжетімді нұсқаны таңдауға көмектеседі.'
               : 'Раздел автопарка обновляется. Если автомобиль нужен прямо сейчас, менеджер поможет подобрать доступный вариант.';
+    const showcaseLabel =
+        locale === 'en'
+            ? 'TopCar Collection'
+            : locale === 'kk'
+              ? 'TopCar Жинағы'
+              : 'Коллекция TopCar';
+    const availableLabel =
+        locale === 'en'
+            ? `${availableCarsCount} available now`
+            : locale === 'kk'
+              ? `Қазір қолжетімді: ${availableCarsCount}`
+              : `Сейчас доступны: ${availableCarsCount}`;
+    const categoryLabel =
+        locale === 'en'
+            ? `${categoriesCount} curated categories`
+            : locale === 'kk'
+              ? `Санаттар саны: ${categoriesCount}`
+              : `Подобранных категорий: ${categoriesCount}`;
 
     return (
         <AnimatedPageWrapper>
@@ -78,20 +99,54 @@ export default function AutoparkPageView({
                         </ol>
                     </nav>
 
-                    <h1 className="mb-4 text-center text-4xl font-bold text-foreground md:text-5xl">
-                        {t('autopark.title')}
-                    </h1>
-                    <p className="mx-auto mb-12 max-w-2xl text-center text-muted-foreground">
-                        {t('autopark.description')}
-                    </p>
+                    <section className="relative overflow-hidden rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.18),rgba(13,13,13,0.96)_38%,rgba(10,10,10,1)_100%)] px-6 py-10 shadow-[0_32px_120px_rgba(0,0,0,0.42)] sm:px-10 sm:py-12">
+                        <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-[#d4af37]/40 to-transparent" />
+                        <div className="mx-auto max-w-5xl text-center">
+                            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#f0dca0]/80">
+                                {showcaseLabel}
+                            </p>
+                            <h1 className="mt-5 text-4xl font-semibold leading-[0.98] text-white sm:text-5xl lg:text-6xl">
+                                {t('autopark.title')}{' '}
+                                <span className="text-[#d4af37]">
+                                    {t('autopark.subtitle')}
+                                </span>
+                            </h1>
+                            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-neutral-300 sm:text-lg">
+                                {t('autopark.description')}
+                            </p>
 
-                    {configMissing && (
-                        <div className="mx-auto mb-8 max-w-3xl rounded-2xl border border-[#d4af37]/25 bg-neutral-900 px-6 py-4 text-center text-sm text-neutral-200">
-                            {configMessage}
+                            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                                <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-neutral-100 backdrop-blur">
+                                    {availableLabel}
+                                </div>
+                                <div className="rounded-full border border-[#d4af37]/25 bg-[#d4af37]/10 px-4 py-2 text-sm font-medium text-[#f0dca0] backdrop-blur">
+                                    {categoryLabel}
+                                </div>
+                                <LocalizedLink
+                                    href="/contacts"
+                                    className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-sm font-medium text-neutral-100 transition-colors hover:border-[#d4af37]/35 hover:text-white"
+                                >
+                                    {locale === 'en'
+                                        ? 'Request selection'
+                                        : locale === 'kk'
+                                          ? 'Іріктеу сұрау'
+                                          : 'Запросить подбор'}
+                                </LocalizedLink>
+                            </div>
+
+                            {configMissing && (
+                                <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-[#d4af37]/20 bg-black/30 px-6 py-4 text-center text-sm text-neutral-200 backdrop-blur">
+                                    {configMessage}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </section>
 
-                    <CarCatalog cars={cars} isLoading={isLoading} />
+                    <CarCatalog
+                        cars={cars}
+                        isLoading={isLoading}
+                        showHeading={false}
+                    />
                 </div>
                 <SEOBlock page="autopark" />
             </main>

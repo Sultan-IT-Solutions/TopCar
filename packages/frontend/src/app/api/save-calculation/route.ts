@@ -1,9 +1,9 @@
 // src/app/api/save-calculation/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureProtectedMutationRequest } from '@/lib/request-security';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
+import { getRequestUser } from '@/lib/user-session';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 export const POST = withRateLimit(
     async (request: NextRequest) => {
@@ -12,13 +12,10 @@ export const POST = withRateLimit(
             return securityError;
         }
 
-        const cookieStore = cookies();
-        const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+        const supabase = getSupabaseAdmin();
 
         try {
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
+            const user = await getRequestUser(request);
 
             if (!user) {
                 return NextResponse.json(

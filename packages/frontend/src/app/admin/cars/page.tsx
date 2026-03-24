@@ -9,9 +9,11 @@ import {
     ArrowLeftIcon,
     ArrowPathIcon,
     ArrowRightOnRectangleIcon,
+    PencilSquareIcon,
     PhotoIcon,
     PlusCircleIcon,
     TrashIcon,
+    XMarkIcon,
 } from '@heroicons/react/24/outline';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import { csrfClientHelper } from '@/lib/csrf-client';
@@ -20,10 +22,18 @@ import { useAdminSession } from '@/hooks/useAdminSession';
 type AdminCar = {
     id: number;
     name: string;
+    slug?: string;
     brand: string;
     class: string;
     price: number;
     image_url: string;
+    description?: string;
+    fuel_type?: string;
+    drive_type?: string;
+    power?: number | null;
+    acceleration?: number | null;
+    year?: number | null;
+    seats?: number | null;
     created_at?: string;
 };
 
@@ -32,6 +42,13 @@ const initialFormState = {
     brand: '',
     class: 'Business',
     price: '',
+    description: '',
+    fuelType: '',
+    driveType: '',
+    power: '',
+    acceleration: '',
+    year: '',
+    seats: '',
     file: null as File | null,
 };
 
@@ -44,6 +61,7 @@ export default function AdminCarsPage() {
     const [message, setMessage] = useState('');
     const [form, setForm] = useState(initialFormState);
     const [preview, setPreview] = useState<string | null>(null);
+    const [editingCarId, setEditingCarId] = useState<number | null>(null);
 
     const loadCars = async () => {
         setIsLoadingCars(true);
@@ -92,6 +110,36 @@ export default function AdminCarsPage() {
         setPreview(objectUrl);
     };
 
+    const startEditing = (car: AdminCar) => {
+        setEditingCarId(car.id);
+        setError('');
+        setMessage('');
+        setForm({
+            name: car.name || '',
+            brand: car.brand || '',
+            class: car.class || 'Business',
+            price: car.price ? String(car.price) : '',
+            description: car.description || '',
+            fuelType: car.fuel_type || '',
+            driveType: car.drive_type || '',
+            power: car.power ? String(car.power) : '',
+            acceleration: car.acceleration ? String(car.acceleration) : '',
+            year: car.year ? String(car.year) : '',
+            seats: car.seats ? String(car.seats) : '',
+            file: null,
+        });
+        setPreview(car.image_url || null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const resetForm = () => {
+        setEditingCarId(null);
+        setForm(initialFormState);
+        setPreview(null);
+        setError('');
+        setMessage('');
+    };
+
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIsSubmitting(true);
@@ -104,32 +152,53 @@ export default function AdminCarsPage() {
             formData.set('brand', form.brand);
             formData.set('class', form.class);
             formData.set('price', form.price);
+            formData.set('description', form.description);
+            formData.set('fuel_type', form.fuelType);
+            formData.set('drive_type', form.driveType);
+            formData.set('power', form.power);
+            formData.set('acceleration', form.acceleration);
+            formData.set('year', form.year);
+            formData.set('seats', form.seats);
 
             if (form.file) {
                 formData.set('file', form.file);
             }
 
-            const response = await fetch('/api/admin/cars', {
-                method: 'POST',
+            const isEditing = editingCarId !== null;
+            const response = await fetch(
+                isEditing ? `/api/admin/cars/${editingCarId}` : '/api/admin/cars',
+                {
+                method: isEditing ? 'PATCH' : 'POST',
                 credentials: 'same-origin',
                 headers: csrfClientHelper.addTokenToHeaders(),
                 body: formData,
-            });
+                },
+            );
 
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.message || 'Не удалось добавить автомобиль.');
+                throw new Error(
+                    data.message ||
+                        (isEditing
+                            ? 'Не удалось обновить автомобиль.'
+                            : 'Не удалось добавить автомобиль.'),
+                );
             }
 
-            setForm(initialFormState);
-            setPreview(null);
-            setMessage(`Автомобиль "${data.name}" успешно добавлен.`);
+            resetForm();
+            setMessage(
+                isEditing
+                    ? `Автомобиль "${data.name}" успешно обновлен.`
+                    : `Автомобиль "${data.name}" успешно добавлен.`,
+            );
             await loadCars();
         } catch (submitError) {
             setError(
                 submitError instanceof Error
                     ? submitError.message
-                    : 'Не удалось добавить автомобиль.',
+                    : editingCarId !== null
+                      ? 'Не удалось обновить автомобиль.'
+                      : 'Не удалось добавить автомобиль.',
             );
         } finally {
             setIsSubmitting(false);
@@ -213,12 +282,36 @@ export default function AdminCarsPage() {
                         <div className="flex items-center gap-3">
                             <PlusCircleIcon className="h-8 w-8 text-[#d4af37]" />
                             <div>
-                                <h2 className="text-2xl font-bold">Добавить автомобиль</h2>
+                                <h2 className="text-2xl font-bold">
+                                    {editingCarId !== null
+                                        ? 'Редактировать автомобиль'
+                                        : 'Добавить автомобиль'}
+                                </h2>
                                 <p className="text-sm text-neutral-400">
-                                    Загрузка выполняется через защищенный server route.
+                                    {editingCarId !== null
+                                        ? 'Изменения сохраняются сразу в каталог. Базовый тариф без водителя синхронизируется с новой ценой.'
+                                        : 'После создания автоматически добавляется базовый тариф без водителя на 1-365 дней. Отдельные тарифы по форматам аренды настраиваются в разделе тарифов.'}
                                 </p>
                             </div>
                         </div>
+
+                        <Link
+                            href="/admin/tariffs"
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-neutral-700 px-3 py-2 text-sm text-neutral-300 transition hover:border-neutral-500 hover:text-white"
+                        >
+                            Настроить тарифы
+                        </Link>
+
+                        {editingCarId !== null && (
+                            <button
+                                type="button"
+                                onClick={resetForm}
+                                className="mt-4 ml-3 inline-flex items-center gap-2 rounded-xl border border-neutral-700 px-3 py-2 text-sm text-neutral-300 transition hover:border-neutral-500 hover:text-white"
+                            >
+                                <XMarkIcon className="h-4 w-4" />
+                                Отменить редактирование
+                            </button>
+                        )}
 
                         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                             <input
@@ -271,9 +364,106 @@ export default function AdminCarsPage() {
                                 min="1"
                                 className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
                             />
+                            <textarea
+                                value={form.description}
+                                onChange={(event) =>
+                                    setForm((current) => ({
+                                        ...current,
+                                        description: event.target.value,
+                                    }))
+                                }
+                                placeholder="Краткое описание"
+                                rows={4}
+                                className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
+                            />
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <input
+                                    value={form.year}
+                                    onChange={(event) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            year: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Год выпуска"
+                                    type="number"
+                                    min="1900"
+                                    className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
+                                />
+                                <input
+                                    value={form.seats}
+                                    onChange={(event) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            seats: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Количество мест"
+                                    type="number"
+                                    min="1"
+                                    className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
+                                />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <input
+                                    value={form.fuelType}
+                                    onChange={(event) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            fuelType: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Тип топлива"
+                                    className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
+                                />
+                                <input
+                                    value={form.driveType}
+                                    onChange={(event) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            driveType: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Привод"
+                                    className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
+                                />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <input
+                                    value={form.power}
+                                    onChange={(event) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            power: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Мощность, л.с."
+                                    type="number"
+                                    min="1"
+                                    className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
+                                />
+                                <input
+                                    value={form.acceleration}
+                                    onChange={(event) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            acceleration: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Разгон до 100, сек"
+                                    type="number"
+                                    min="0.1"
+                                    step="0.1"
+                                    className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
+                                />
+                            </div>
                             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-600 bg-neutral-950 px-4 py-4 text-sm text-neutral-300 transition hover:border-[#d4af37]/50">
                                 <PhotoIcon className="h-5 w-5" />
-                                <span>Выбрать изображение</span>
+                                <span>
+                                    {editingCarId !== null
+                                        ? 'Заменить изображение'
+                                        : 'Выбрать изображение'}
+                                </span>
                                 <input
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp,image/avif"
@@ -314,7 +504,11 @@ export default function AdminCarsPage() {
                                 {isSubmitting && (
                                     <ArrowPathIcon className="h-5 w-5 animate-spin" />
                                 )}
-                                {isSubmitting ? 'Сохраняем…' : 'Добавить автомобиль'}
+                                {isSubmitting
+                                    ? 'Сохраняем…'
+                                    : editingCarId !== null
+                                      ? 'Сохранить изменения'
+                                      : 'Добавить автомобиль'}
                             </button>
                         </form>
                     </section>
@@ -372,17 +566,70 @@ export default function AdminCarsPage() {
                                                         {car.brand} • {car.class}
                                                     </p>
                                                 </div>
-                                                <button
-                                                    onClick={() => void handleDelete(car)}
-                                                    className="rounded-xl border border-red-500/20 bg-red-500/10 p-2 text-red-200 transition hover:bg-red-500/20"
-                                                    title="Удалить"
-                                                >
-                                                    <TrashIcon className="h-5 w-5" />
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => startEditing(car)}
+                                                        className="rounded-xl border border-white/10 bg-white/5 p-2 text-neutral-200 transition hover:border-[#d4af37]/30 hover:text-white"
+                                                        title="Редактировать"
+                                                    >
+                                                        <PencilSquareIcon className="h-5 w-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => void handleDelete(car)}
+                                                        className="rounded-xl border border-red-500/20 bg-red-500/10 p-2 text-red-200 transition hover:bg-red-500/20"
+                                                        title="Удалить"
+                                                    >
+                                                        <TrashIcon className="h-5 w-5" />
+                                                    </button>
+                                                </div>
                                             </div>
+                                            {car.description && (
+                                                <p className="line-clamp-3 text-sm leading-6 text-neutral-400">
+                                                    {car.description}
+                                                </p>
+                                            )}
                                             <p className="text-sm font-semibold text-[#d4af37]">
                                                 {Number(car.price).toLocaleString('ru-RU')} ₸ / сутки
                                             </p>
+                                            {(car.year ||
+                                                car.seats ||
+                                                car.drive_type ||
+                                                car.fuel_type ||
+                                                car.power ||
+                                                car.acceleration) && (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {car.year && (
+                                                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-300">
+                                                            {car.year}
+                                                        </span>
+                                                    )}
+                                                    {car.seats && (
+                                                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-300">
+                                                            {car.seats} мест
+                                                        </span>
+                                                    )}
+                                                    {car.drive_type && (
+                                                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-300">
+                                                            {car.drive_type}
+                                                        </span>
+                                                    )}
+                                                    {car.fuel_type && (
+                                                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-300">
+                                                            {car.fuel_type}
+                                                        </span>
+                                                    )}
+                                                    {car.power && (
+                                                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-300">
+                                                            {car.power} л.с.
+                                                        </span>
+                                                    )}
+                                                    {car.acceleration && (
+                                                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-300">
+                                                            0-100: {car.acceleration} сек
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </article>
                                 ))}

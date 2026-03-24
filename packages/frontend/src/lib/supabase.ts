@@ -18,7 +18,13 @@ export function getSupabase() {
         if (!url || !key) {
             throw new Error('Public Supabase credentials are missing');
         }
-        client = createClient(url, key);
+        client = createClient(url, key, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
+            },
+        });
     }
     return client;
 }

@@ -6,6 +6,7 @@
         "dev": "NEXT_DIST_DIR=.next-dev next dev --turbopack",
         "build": "next build",
         "start": "next start",
+        "db:apply": "node ./scripts/apply-supabase-schema.mjs",
         "lint": "next lint",
         "test": "jest",
         "test:watch": "jest --watch",

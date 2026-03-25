@@ -1,5 +1,5 @@
 import type { Locale } from '@/lib/i18n';
-import { Car, Price } from '@/types';
+import { Car, DurationUnit, Price } from '@/types';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const CYRILLIC_TO_LATIN: Record<string, string> = {
@@ -80,11 +80,20 @@ export function ensureCarSlug(
     return `car-${car.id}`;
 }
 
-function normalizeTierBoundary(value: number): number {
-    if (value >= 24 && value % 24 === 0) {
+function normalizeTierBoundary(
+    value: number,
+    unit: DurationUnit = 'day',
+): number {
+    if (unit === 'day' && value >= 24 && value % 24 === 0) {
         return value / 24;
     }
     return value;
+}
+
+export function getPriceDurationUnit(
+    price: Pick<Price, 'duration_unit'>,
+): DurationUnit {
+    return price.duration_unit === 'hour' ? 'hour' : 'day';
 }
 
 export function normalizeGalleryImages(
@@ -187,38 +196,73 @@ export function formatRentalDaysLabel(
     return `${days} дней`;
 }
 
+export function formatRentalDurationLabel(
+    value: number,
+    unit: DurationUnit = 'day',
+    locale: Locale = 'ru',
+): string {
+    if (unit === 'hour') {
+        if (locale === 'en') {
+            return `${value} ${value === 1 ? 'hour' : 'hours'}`;
+        }
+
+        if (locale === 'kk') {
+            return `${value} сағат`;
+        }
+
+        if (value % 10 === 1 && value % 100 !== 11) return `${value} час`;
+        if (
+            [2, 3, 4].includes(value % 10) &&
+            ![12, 13, 14].includes(value % 100)
+        ) {
+            return `${value} часа`;
+        }
+
+        return `${value} часов`;
+    }
+
+    return formatRentalDaysLabel(value, locale);
+}
+
 export function formatPriceTierLabel(
     price: Price,
     locale: Locale = 'ru',
 ): string {
-    const from = normalizeTierBoundary(price.days_from);
-    const to = normalizeTierBoundary(price.days_to);
+    const unit = getPriceDurationUnit(price);
+    const from = normalizeTierBoundary(price.days_from, unit);
+    const to = normalizeTierBoundary(price.days_to, unit);
 
     if (from === to) {
-        return formatRentalDaysLabel(from, locale);
+        return formatRentalDurationLabel(from, unit, locale);
     }
 
-    return `${formatRentalDaysLabel(from, locale)} - ${formatRentalDaysLabel(
+    return `${formatRentalDurationLabel(from, unit, locale)} - ${formatRentalDurationLabel(
         to,
+        unit,
         locale,
     )}`;
 }
 
 export function getMatchingPrice(
     prices: Price[] = [],
-    days: number,
+    durationValue: number,
     withDriver: boolean,
+    durationUnit: DurationUnit = 'day',
 ): Price | null {
-    if (!days) return null;
+    if (!durationValue) return null;
 
     const relevantPrices = prices
-        .filter((price) => price.with_driver === withDriver)
+        .filter(
+            (price) =>
+                price.with_driver === withDriver &&
+                getPriceDurationUnit(price) === durationUnit,
+        )
         .sort((a, b) => a.days_from - b.days_from || a.days_to - b.days_to);
 
     const exactMatch = relevantPrices.find((price) => {
-        const from = normalizeTierBoundary(price.days_from);
-        const to = normalizeTierBoundary(price.days_to);
-        return days >= from && days <= to;
+        const from = normalizeTierBoundary(price.days_from, durationUnit);
+        const to = normalizeTierBoundary(price.days_to, durationUnit);
+        return durationValue >= from && durationValue <= to;
     });
 
     return exactMatch || null;
@@ -226,10 +270,15 @@ export function getMatchingPrice(
 
 export function calculateRentalTotal(
     price: Price | null,
-    days: number,
+    durationValue: number,
 ): number {
-    if (!price || !days) return 0;
-    return price.price_per_day * days;
+    if (!price || !durationValue) return 0;
+
+    if (getPriceDurationUnit(price) === 'hour') {
+        return price.price_per_day;
+    }
+
+    return price.price_per_day * durationValue;
 }
 
 export function getCarCategories(cars: Car[]): string[] {

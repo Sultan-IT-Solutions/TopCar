@@ -86,7 +86,9 @@ export async function PATCH(
             return jsonNoStore(
                 {
                     message:
-                        'Для этого формата аренды уже существует пересекающийся тариф по дням.',
+                        payload.durationUnit === 'hour'
+                            ? 'Для этого формата аренды уже существует пересекающийся почасовой тариф.'
+                            : 'Для этого формата аренды уже существует пересекающийся тариф по дням.',
                 },
                 { status: 409 },
             );
@@ -100,11 +102,12 @@ export async function PATCH(
                 days_to: payload.daysTo,
                 price_per_day: payload.pricePerDay,
                 with_driver: payload.withDriver,
+                duration_unit: payload.durationUnit,
                 conditions: payload.conditions,
             })
             .eq('id', tariffId)
             .select(
-                'id, car_id, days_from, days_to, price_per_day, with_driver, conditions, created_at, cars(id, name, brand, class)',
+                'id, car_id, days_from, days_to, price_per_day, with_driver, duration_unit, conditions, created_at, cars(id, name, brand, class)',
             )
             .single();
 

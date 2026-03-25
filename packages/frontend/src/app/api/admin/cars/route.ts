@@ -217,6 +217,7 @@ export const POST = withRateLimit(
                     days_to: 365,
                     price_per_day: price,
                     with_driver: false,
+                    duration_unit: 'day',
                     conditions: 'Базовый тариф',
                 },
             ]);

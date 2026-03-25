@@ -4,6 +4,8 @@
  * =================================================================
  */
 
+export type DurationUnit = 'day' | 'hour';
+
 // Тип для цен из таблицы `prices`
 export type Price = {
     id: number;
@@ -13,6 +15,7 @@ export type Price = {
     price_per_day: number;
     with_driver: boolean;
     conditions?: string;
+    duration_unit?: DurationUnit;
 };
 
 /**
@@ -80,4 +83,6 @@ export type Booking = {
     total_price: number;
     status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
     created_at: string;
+    duration_unit?: DurationUnit;
+    duration_value?: number;
 };

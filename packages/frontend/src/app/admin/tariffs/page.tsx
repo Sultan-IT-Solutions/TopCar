@@ -18,6 +18,7 @@ import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import FormattedPrice from '@/components/FormattedPrice';
 import { csrfClientHelper } from '@/lib/csrf-client';
 import { useAdminSession } from '@/hooks/useAdminSession';
+import { DurationUnit } from '@/types';
 
 type AdminCarOption = {
     id: number;
@@ -35,6 +36,7 @@ type AdminTariff = {
     days_to: number;
     price_per_day: number;
     with_driver: boolean;
+    duration_unit?: DurationUnit;
     conditions?: string | null;
     created_at?: string;
     car?: {
@@ -47,6 +49,7 @@ type AdminTariff = {
 
 const initialFormState = {
     carId: '',
+    durationUnit: 'day',
     withDriver: 'false',
     daysFrom: '1',
     daysTo: '365',
@@ -54,12 +57,18 @@ const initialFormState = {
     conditions: '',
 };
 
-function formatRange(daysFrom: number, daysTo: number) {
+function formatRange(
+    daysFrom: number,
+    daysTo: number,
+    durationUnit: DurationUnit = 'day',
+) {
+    const suffix = durationUnit === 'hour' ? 'ч.' : 'дн.';
+
     if (daysFrom === daysTo) {
-        return `${daysFrom} дн.`;
+        return `${daysFrom} ${suffix}`;
     }
 
-    return `${daysFrom}-${daysTo} дн.`;
+    return `${daysFrom}-${daysTo} ${suffix}`;
 }
 
 export default function AdminTariffsPage() {
@@ -166,6 +175,8 @@ export default function AdminTariffsPage() {
                 ...group,
                 tariffs: [...group.tariffs].sort(
                     (left, right) =>
+                        (left.duration_unit === 'hour' ? 1 : 0) -
+                            (right.duration_unit === 'hour' ? 1 : 0) ||
                         Number(left.with_driver) - Number(right.with_driver) ||
                         left.days_from - right.days_from,
                 ),
@@ -193,6 +204,7 @@ export default function AdminTariffsPage() {
 
         const payload = {
             carId: Number(form.carId),
+            durationUnit: form.durationUnit,
             withDriver: form.withDriver === 'true',
             daysFrom: Number(form.daysFrom),
             daysTo: Number(form.daysTo),
@@ -242,6 +254,7 @@ export default function AdminTariffsPage() {
         setEditingTariffId(tariff.id);
         setForm({
             carId: String(tariff.car_id),
+            durationUnit: tariff.duration_unit === 'hour' ? 'hour' : 'day',
             withDriver: tariff.with_driver ? 'true' : 'false',
             daysFrom: String(tariff.days_from),
             daysTo: String(tariff.days_to),
@@ -255,7 +268,11 @@ export default function AdminTariffsPage() {
     const handleDelete = async (tariff: AdminTariff) => {
         if (
             !window.confirm(
-                `Удалить тариф ${formatRange(tariff.days_from, tariff.days_to)} для "${tariff.car?.brand || ''} ${tariff.car?.name || ''}"?`,
+                `Удалить тариф ${formatRange(
+                    tariff.days_from,
+                    tariff.days_to,
+                    tariff.duration_unit,
+                )} для "${tariff.car?.brand || ''} ${tariff.car?.name || ''}"?`,
             )
         ) {
             return;
@@ -332,7 +349,7 @@ export default function AdminTariffsPage() {
                                     {editingTariffId ? 'Редактировать тариф' : 'Добавить тариф'}
                                 </h2>
                                 <p className="text-sm text-neutral-400">
-                                    Отдельно управляйте ценами без водителя и с водителем по диапазонам дней.
+                                    Отдельно управляйте дневными и почасовыми тарифами без водителя и с водителем.
                                 </p>
                             </div>
                         </div>
@@ -358,6 +375,62 @@ export default function AdminTariffsPage() {
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-neutral-300">
+                                    Тип тарифа
+                                </label>
+                                <div className="grid grid-cols-2 rounded-2xl bg-neutral-950 p-1">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                durationUnit: 'day',
+                                                daysFrom:
+                                                    current.durationUnit === 'hour'
+                                                        ? '1'
+                                                        : current.daysFrom,
+                                                daysTo:
+                                                    current.durationUnit === 'hour'
+                                                        ? '365'
+                                                        : current.daysTo,
+                                            }))
+                                        }
+                                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                                            form.durationUnit === 'day'
+                                                ? 'bg-[#d4af37] text-black'
+                                                : 'text-neutral-300 hover:bg-neutral-800'
+                                        }`}
+                                    >
+                                        По дням
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                durationUnit: 'hour',
+                                                daysFrom:
+                                                    current.durationUnit === 'day'
+                                                        ? '3'
+                                                        : current.daysFrom,
+                                                daysTo:
+                                                    current.durationUnit === 'day'
+                                                        ? '3'
+                                                        : current.daysTo,
+                                            }))
+                                        }
+                                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                                            form.durationUnit === 'hour'
+                                                ? 'bg-[#d4af37] text-black'
+                                                : 'text-neutral-300 hover:bg-neutral-800'
+                                        }`}
+                                    >
+                                        По часам
+                                    </button>
+                                </div>
                             </div>
 
                             <div>
@@ -403,7 +476,9 @@ export default function AdminTariffsPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-neutral-300">
-                                        От дней
+                                        {form.durationUnit === 'hour'
+                                            ? 'От часов'
+                                            : 'От дней'}
                                     </label>
                                     <input
                                         type="number"
@@ -420,7 +495,9 @@ export default function AdminTariffsPage() {
                                 </div>
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-neutral-300">
-                                        До дней
+                                        {form.durationUnit === 'hour'
+                                            ? 'До часов'
+                                            : 'До дней'}
                                     </label>
                                     <input
                                         type="number"
@@ -439,7 +516,9 @@ export default function AdminTariffsPage() {
 
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-neutral-300">
-                                    Цена за сутки, ₸
+                                    {form.durationUnit === 'hour'
+                                        ? 'Цена за период, ₸'
+                                        : 'Цена за сутки, ₸'}
                                 </label>
                                 <input
                                     type="number"
@@ -489,7 +568,13 @@ export default function AdminTariffsPage() {
                                         />{' '}
                                         ₸
                                     </strong>
-                                    . Для точного расчета в калькуляторе используйте отдельные тарифные диапазоны ниже.
+                                    . Для точного расчета в калькуляторе используйте отдельные {form.durationUnit === 'hour' ? 'почасовые' : 'дневные'} тарифы ниже.
+                                </div>
+                            )}
+
+                            {form.durationUnit === 'hour' && (
+                                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                                    Для почасового режима задавайте отдельные слоты, например: 3-3, 6-6 или 12-12 часов.
                                 </div>
                             )}
 
@@ -539,7 +624,7 @@ export default function AdminTariffsPage() {
                             <div>
                                 <h2 className="text-2xl font-bold">Текущие тарифы</h2>
                                 <p className="text-sm text-neutral-400">
-                                    Здесь задаются диапазоны дней и отдельные тарифы для форматов аренды.
+                                    Здесь задаются дневные диапазоны и почасовые слоты для разных форматов аренды.
                                 </p>
                             </div>
                             <button
@@ -573,7 +658,7 @@ export default function AdminTariffsPage() {
 
                                     {group.tariffs.length === 0 ? (
                                         <div className="mt-4 rounded-2xl border border-dashed border-neutral-700 px-4 py-4 text-sm text-neutral-400">
-                                            Для этого автомобиля пока нет явных тарифов. Калькулятор использует только базовую цену без водителя.
+                                            Для этого автомобиля пока нет явных тарифов. Калькулятор использует только базовую цену без водителя по дням.
                                         </div>
                                     ) : (
                                         <div className="mt-4 space-y-3">
@@ -591,6 +676,19 @@ export default function AdminTariffsPage() {
                                                             <div className="flex flex-wrap items-center gap-2">
                                                                 <span
                                                                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                                                        tariff.duration_unit ===
+                                                                        'hour'
+                                                                            ? 'bg-violet-500/15 text-violet-200'
+                                                                            : 'bg-amber-500/15 text-amber-200'
+                                                                    }`}
+                                                                >
+                                                                    {tariff.duration_unit ===
+                                                                    'hour'
+                                                                        ? 'Почасовой'
+                                                                        : 'Посуточный'}
+                                                                </span>
+                                                                <span
+                                                                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                                                         tariff.with_driver
                                                                             ? 'bg-blue-500/15 text-blue-200'
                                                                             : 'bg-emerald-500/15 text-emerald-200'
@@ -604,6 +702,7 @@ export default function AdminTariffsPage() {
                                                                     {formatRange(
                                                                         tariff.days_from,
                                                                         tariff.days_to,
+                                                                        tariff.duration_unit,
                                                                     )}
                                                                 </span>
                                                             </div>
@@ -611,7 +710,11 @@ export default function AdminTariffsPage() {
                                                                 <FormattedPrice
                                                                     value={tariff.price_per_day}
                                                                 />{' '}
-                                                                ₸ / сутки
+                                                                ₸{' '}
+                                                                {tariff.duration_unit ===
+                                                                'hour'
+                                                                    ? '/ слот'
+                                                                    : '/ сутки'}
                                                             </p>
                                                             <p className="text-sm text-neutral-400">
                                                                 {tariff.conditions ||

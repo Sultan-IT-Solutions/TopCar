@@ -220,15 +220,18 @@ create table if not exists public.prices (
     days_to integer not null,
     price_per_day integer not null,
     with_driver boolean not null default false,
+    duration_unit text not null default 'day'
+        check (duration_unit in ('day', 'hour')),
     conditions text,
     created_at timestamptz not null default now(),
     constraint prices_days_check check (days_from > 0 and days_to >= days_from),
-    constraint prices_unique_range unique (car_id, days_from, days_to, with_driver)
+    constraint prices_unique_range unique (car_id, days_from, days_to, with_driver, duration_unit)
 );
 
 alter table public.prices enable row level security;
 
 create index if not exists prices_car_id_idx on public.prices (car_id);
+create index if not exists prices_car_id_duration_unit_idx on public.prices (car_id, duration_unit, with_driver);
 
 drop policy if exists "prices_select_public" on public.prices;
 create policy "prices_select_public"
@@ -290,6 +293,10 @@ create table if not exists public.bookings (
     user_phone text not null,
     date_from date not null,
     date_to date not null,
+    duration_unit text not null default 'day'
+        check (duration_unit in ('day', 'hour')),
+    duration_value integer
+        check (duration_value is null or duration_value > 0),
     total_price integer not null default 0,
     status text not null default 'confirmed'
         check (status in ('pending', 'confirmed', 'active', 'completed', 'cancelled')),

@@ -4,6 +4,7 @@ import { ensureProtectedMutationRequest } from '@/lib/request-security';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { getRequestUser } from '@/lib/user-session';
+import { DurationUnit } from '@/types';
 
 export const runtime = 'nodejs';
 
@@ -17,6 +18,8 @@ type BookingDetails = {
     dateTo?: string;
     startDate?: string;
     endDate?: string;
+    durationUnit?: DurationUnit;
+    durationValue?: number;
 };
 
 type LeadRequestPayload = {
@@ -99,6 +102,13 @@ async function saveBookingRecord(payload: {
 }) {
     const booking = payload.bookingDetails;
     const { dateFrom, dateTo } = getNormalizedBookingDates(booking);
+    const normalizedDurationUnit =
+        booking?.durationUnit === 'hour' ? 'hour' : 'day';
+    const normalizedDurationValue =
+        Number.isFinite(Number(booking?.durationValue)) &&
+        Number(booking?.durationValue) > 0
+            ? Number(booking?.durationValue)
+            : null;
 
     if (!booking || !isValidDateString(dateFrom) || !isValidDateString(dateTo)) {
         return {
@@ -121,6 +131,8 @@ async function saveBookingRecord(payload: {
             user_phone: payload.userPhone,
             date_from: dateFrom,
             date_to: dateTo,
+            duration_unit: normalizedDurationUnit,
+            duration_value: normalizedDurationValue,
             total_price: Number(booking.price || 0),
             status: 'pending',
         },

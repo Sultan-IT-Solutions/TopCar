@@ -8,7 +8,7 @@ import {
     CheckCircleIcon,
     BookmarkSquareIcon,
 } from '@heroicons/react/24/outline';
-import { Car } from '@/types';
+import { Car, DurationUnit, Price } from '@/types';
 import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
 import FormattedPrice from './FormattedPrice';
 import BookingModal from './BookingModal';
@@ -18,8 +18,9 @@ import { useTranslations } from '@/lib/i18n';
 import {
     calculateRentalTotal,
     formatPriceTierLabel,
-    formatRentalDaysLabel,
+    formatRentalDurationLabel,
     formatRentalPeriod,
+    getPriceDurationUnit,
     getMatchingPrice,
     getRentalDays,
     isCarAvailable,
@@ -40,6 +41,8 @@ type BookingDetails = {
     carId?: number;
     startDate?: string;
     endDate?: string;
+    durationUnit?: DurationUnit;
+    durationValue?: number;
 };
 
 type StatusMessage = {
@@ -48,6 +51,30 @@ type StatusMessage = {
 } | null;
 
 const today = new Date().toISOString().split('T')[0];
+
+function formatSingleRentalDate(
+    value: string,
+    locale: 'ru' | 'en' | 'kk' = 'ru',
+) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return locale === 'en'
+            ? 'Date is not selected'
+            : locale === 'kk'
+              ? 'Күн таңдалмаған'
+              : 'Дата не выбрана';
+    }
+
+    return new Intl.DateTimeFormat(
+        locale === 'en' ? 'en-US' : locale === 'kk' ? 'kk-KZ' : 'ru-RU',
+        {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        },
+    ).format(date);
+}
 
 export default function CalculatorModal({
     isOpen,
@@ -60,6 +87,10 @@ export default function CalculatorModal({
     const [selectedCarId, setSelectedCarId] = useState<number | string>('');
     const [serviceType, setServiceType] =
         useState<ServiceType>('withoutDriver');
+    const [durationUnit, setDurationUnit] = useState<DurationUnit>('day');
+    const [selectedHourlyTariffId, setSelectedHourlyTariffId] = useState<
+        number | string
+    >('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [bookingInfo, setBookingInfo] = useState<{
@@ -93,18 +124,27 @@ export default function CalculatorModal({
                   carPlaceholder: 'Car model...',
                   noCars: 'No available cars',
                   format: '2. Rental format',
-                  startDate: '3. Start date',
-                  endDate: '4. Return date',
+                  durationType: '3. Calculation mode',
+                  dailyRent: 'By days',
+                  hourlyRent: 'By hours',
+                  startDate: '4. Start date',
+                  endDate: '5. Return date',
+                  rentalDate: '4. Rental date',
+                  hourlyPackage: '5. Rental time',
                   noTariff:
                       'There is no matching tariff for the selected period yet. Leave a request and a manager will prepare an individual quote.',
                   noFormatTariff:
                       'This rental format is being confirmed individually for the selected car. Leave a request and a manager will prepare the final offer.',
+                  noHourlyTariff:
+                      'Hourly offers for the selected rental format are not configured yet.',
                   summary: 'Preliminary estimate',
                   total: 'Total price',
                   tariff: 'Tariff',
                   perDay: 'Daily rate',
+                  perSlot: 'Price for the period',
                   availability: 'Availability',
                   availableForDates: 'Available for selected dates',
+                  availableForDate: 'Available on selected date',
                   saveButton: 'Save estimate',
                   saving: 'Saving...',
                   requestButton: 'Create request',
@@ -133,18 +173,27 @@ export default function CalculatorModal({
                     carPlaceholder: 'Көлік моделі...',
                     noCars: 'Қолжетімді көлік жоқ',
                     format: '2. Жалдау форматы',
-                    startDate: '3. Басталу күні',
-                    endDate: '4. Қайтару күні',
+                    durationType: '3. Есептеу режимі',
+                    dailyRent: 'Күнмен',
+                    hourlyRent: 'Сағатпен',
+                    startDate: '4. Басталу күні',
+                    endDate: '5. Қайтару күні',
+                    rentalDate: '4. Жалға алу күні',
+                    hourlyPackage: '5. Жалға алу уақыты',
                     noTariff:
                         'Таңдалған кезеңге сәйкес тариф әзірге жоқ. Өтінім қалдырыңыз, менеджер жеке есеп дайындайды.',
                     noFormatTariff:
                         'Осы көлік үшін таңдалған жалдау форматы жеке нақтыланады. Өтінім қалдырыңыз, менеджер соңғы ұсынысты дайындайды.',
+                    noHourlyTariff:
+                        'Таңдалған жалдау форматы үшін сағаттық тарифтер әлі бапталмаған.',
                     summary: 'Алдын ала есеп',
                     total: 'Жалпы құны',
                     tariff: 'Тариф',
                     perDay: 'Тәуліктік баға',
+                    perSlot: 'Кезең құны',
                     availability: 'Қолжетімділік',
                     availableForDates: 'Таңдалған күндерге қолжетімді',
+                    availableForDate: 'Таңдалған күнге қолжетімді',
                     saveButton: 'Есепті сақтау',
                     saving: 'Сақталуда...',
                     requestButton: 'Өтінім рәсімдеу',
@@ -172,18 +221,27 @@ export default function CalculatorModal({
                     carPlaceholder: 'Модель автомобиля...',
                     noCars: 'Нет доступных автомобилей',
                     format: '2. Формат аренды',
-                    startDate: '3. Дата начала',
-                    endDate: '4. Дата возврата',
+                    durationType: '3. Режим расчета',
+                    dailyRent: 'По дням',
+                    hourlyRent: 'По часам',
+                    startDate: '4. Дата начала',
+                    endDate: '5. Дата возврата',
+                    rentalDate: '4. Дата аренды',
+                    hourlyPackage: '5. Время аренды',
                     noTariff:
                         'Для выбранного периода пока нет подходящего тарифа. Оставьте заявку, и менеджер подготовит индивидуальный расчет.',
                     noFormatTariff:
                         'Для выбранного формата аренды условия уточняются индивидуально. Оставьте заявку, и менеджер подготовит подходящий вариант.',
+                    noHourlyTariff:
+                        'Для выбранного формата аренды почасовые тарифы пока не настроены.',
                     summary: 'Предварительный расчет',
                     total: 'Итоговая стоимость',
                     tariff: 'Тариф',
                     perDay: 'Цена в сутки',
+                    perSlot: 'Цена за период',
                     availability: 'Доступность',
                     availableForDates: 'В выбранные даты',
+                    availableForDate: 'На выбранную дату',
                     saveButton: 'Сохранить расчет',
                     saving: 'Сохранение...',
                     requestButton: 'Оформить заявку',
@@ -237,6 +295,12 @@ export default function CalculatorModal({
         }
     }, [startDate, endDate]);
 
+    useEffect(() => {
+        if (durationUnit === 'hour') {
+            setEndDate(startDate);
+        }
+    }, [durationUnit, startDate]);
+
     const availableCars = useMemo(
         () => carsData.filter(isCarAvailable),
         [carsData],
@@ -264,20 +328,80 @@ export default function CalculatorModal({
         );
     }, [selectedCar, serviceType]);
 
+    const dailyServicePrices = useMemo(
+        () =>
+            servicePrices.filter(
+                (price) => getPriceDurationUnit(price) === 'day',
+            ),
+        [servicePrices],
+    );
+
+    const hourlyServicePrices = useMemo(
+        () =>
+            servicePrices
+                .filter((price) => getPriceDurationUnit(price) === 'hour')
+                .sort((left, right) => left.days_from - right.days_from),
+        [servicePrices],
+    );
+
+    useEffect(() => {
+        if (durationUnit === 'hour' && hourlyServicePrices.length === 0) {
+            setDurationUnit('day');
+        }
+    }, [durationUnit, hourlyServicePrices.length]);
+
+    useEffect(() => {
+        if (durationUnit !== 'hour') {
+            setSelectedHourlyTariffId('');
+            return;
+        }
+
+        setSelectedHourlyTariffId((current) => {
+            if (
+                hourlyServicePrices.some(
+                    (price) => String(price.id) === String(current),
+                )
+            ) {
+                return current;
+            }
+
+            return String(hourlyServicePrices[0]?.id ?? '');
+        });
+    }, [durationUnit, hourlyServicePrices]);
+
+    const selectedHourlyTariff = useMemo(
+        () =>
+            hourlyServicePrices.find(
+                (price) => String(price.id) === String(selectedHourlyTariffId),
+            ) || null,
+        [hourlyServicePrices, selectedHourlyTariffId],
+    );
+
+    const rentalHours = useMemo(
+        () => selectedHourlyTariff?.days_from || 0,
+        [selectedHourlyTariff],
+    );
+
     const selectedPriceInfo = useMemo(() => {
-        if (!selectedCar || !rentalDays) return null;
+        if (!selectedCar) return null;
+
+        if (durationUnit === 'hour') {
+            return selectedHourlyTariff;
+        }
+
+        if (!rentalDays) return null;
+
         const matchedPrice = getMatchingPrice(
             selectedCar.prices || [],
             rentalDays,
             serviceType === 'withDriver',
+            'day',
         );
 
         if (matchedPrice) {
             return matchedPrice;
         }
 
-        // Fallback for cars that only have a base daily price in the cars table
-        // but do not yet have explicit price tiers in the prices table.
         if (serviceType === 'withoutDriver') {
             const fallbackPrice =
                 selectedCar.price_per_day || selectedCar.price || 0;
@@ -290,49 +414,83 @@ export default function CalculatorModal({
                     days_to: rentalDays,
                     price_per_day: fallbackPrice,
                     with_driver: false,
+                    duration_unit: 'day',
                     conditions:
                         locale === 'en'
                             ? 'Base daily rate'
                             : locale === 'kk'
                               ? 'Негізгі тәуліктік тариф'
                               : 'Базовый посуточный тариф',
-                };
+                } as Price;
             }
         }
 
         return null;
-    }, [locale, selectedCar, rentalDays, serviceType]);
+    }, [
+        durationUnit,
+        locale,
+        rentalDays,
+        selectedCar,
+        selectedHourlyTariff,
+        serviceType,
+    ]);
 
     const tariffWarningText = useMemo(() => {
-        if (!selectedCar || !startDate || !endDate || selectedPriceInfo) {
+        if (!selectedCar || !startDate || selectedPriceInfo) {
             return null;
         }
 
-        if (serviceType === 'withDriver' && servicePrices.length === 0) {
+        if (durationUnit === 'hour') {
+            if (hourlyServicePrices.length === 0) {
+                return copy.noHourlyTariff;
+            }
+
+            return null;
+        }
+
+        if (!endDate) {
+            return null;
+        }
+
+        if (serviceType === 'withDriver' && dailyServicePrices.length === 0) {
             return copy.noFormatTariff;
         }
 
         return copy.noTariff;
     }, [
         copy.noFormatTariff,
+        copy.noHourlyTariff,
         copy.noTariff,
+        dailyServicePrices.length,
+        durationUnit,
         endDate,
+        hourlyServicePrices.length,
         selectedCar,
         selectedPriceInfo,
-        servicePrices.length,
         serviceType,
         startDate,
     ]);
 
+    const selectedDurationValue =
+        durationUnit === 'hour' ? rentalHours : rentalDays;
+
     const totalPrice = useMemo(
-        () => calculateRentalTotal(selectedPriceInfo, rentalDays),
-        [selectedPriceInfo, rentalDays],
+        () => calculateRentalTotal(selectedPriceInfo, selectedDurationValue),
+        [selectedDurationValue, selectedPriceInfo],
     );
 
     const calculation = useMemo(() => {
-        if (!selectedCar || !selectedPriceInfo || !rentalDays) {
+        if (
+            !selectedCar ||
+            !selectedPriceInfo ||
+            !selectedDurationValue ||
+            !startDate ||
+            (durationUnit === 'day' && !endDate)
+        ) {
             return null;
         }
+
+        const isHourly = durationUnit === 'hour';
 
         return {
             carId: selectedCar.id,
@@ -341,22 +499,39 @@ export default function CalculatorModal({
                 serviceType === 'withDriver'
                     ? copy.withDriver
                     : copy.withoutDriver,
-            duration: formatRentalDaysLabel(rentalDays, locale),
-            rentalPeriod: formatRentalPeriod(startDate, endDate, locale),
+            duration: formatRentalDurationLabel(
+                selectedDurationValue,
+                durationUnit,
+                locale,
+            ),
+            rentalPeriod: isHourly
+                ? formatSingleRentalDate(startDate, locale)
+                : formatRentalPeriod(startDate, endDate, locale),
             pricePerDay: selectedPriceInfo.price_per_day,
             price: totalPrice,
             tariffLabel: formatPriceTierLabel(selectedPriceInfo, locale),
             conditions: selectedPriceInfo.conditions,
             startDate,
-            endDate,
+            endDate: isHourly ? startDate : endDate,
+            durationUnit,
+            durationValue: selectedDurationValue,
+            priceLabel: isHourly ? copy.perSlot : copy.perDay,
+            availabilityLabel: isHourly
+                ? copy.availableForDate
+                : copy.availableForDates,
         };
     }, [
+        copy.availableForDate,
+        copy.availableForDates,
+        copy.perDay,
+        copy.perSlot,
         copy.withDriver,
         copy.withoutDriver,
+        durationUnit,
         endDate,
         locale,
-        rentalDays,
         selectedCar,
+        selectedDurationValue,
         selectedPriceInfo,
         serviceType,
         startDate,
@@ -434,7 +609,10 @@ export default function CalculatorModal({
                 price: calculation.price,
                 conditions: calculation.conditions,
                 startDate,
-                endDate,
+                endDate:
+                    calculation.durationUnit === 'hour' ? startDate : endDate,
+                durationUnit: calculation.durationUnit,
+                durationValue: calculation.durationValue,
             },
         });
         onClose();
@@ -570,56 +748,169 @@ export default function CalculatorModal({
                                                     </div>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                                    <div>
-                                                        <label
-                                                            htmlFor="calcStartDate"
-                                                            className="mb-2 block text-sm font-medium text-neutral-300"
-                                                        >
-                                                            {copy.startDate}
-                                                        </label>
-                                                        <input
-                                                            id="calcStartDate"
-                                                            type="date"
-                                                            min={today}
-                                                            value={startDate}
-                                                            onChange={(event) =>
-                                                                setStartDate(
-                                                                    event.target
-                                                                        .value,
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-medium text-neutral-300">
+                                                        {copy.durationType}
+                                                    </label>
+                                                    <div className="grid grid-cols-2 rounded-xl bg-neutral-800 p-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setDurationUnit(
+                                                                    'day',
                                                                 )
                                                             }
-                                                            className="w-full rounded-xl border border-neutral-600 bg-neutral-800 px-3 py-3 text-base text-white focus:border-[#d4af37] focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label
-                                                            htmlFor="calcEndDate"
-                                                            className="mb-2 block text-sm font-medium text-neutral-300"
+                                                            className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors duration-200 ${durationUnit === 'day' ? 'bg-[#d4af37] text-black shadow' : 'text-neutral-300 hover:bg-neutral-700'}`}
                                                         >
-                                                            {copy.endDate}
-                                                        </label>
-                                                        <input
-                                                            id="calcEndDate"
-                                                            type="date"
-                                                            min={
-                                                                startDate ||
-                                                                today
-                                                            }
-                                                            value={endDate}
-                                                            onChange={(event) =>
-                                                                setEndDate(
-                                                                    event.target
-                                                                        .value,
+                                                            {copy.dailyRent}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                hourlyServicePrices.length >
+                                                                    0 &&
+                                                                setDurationUnit(
+                                                                    'hour',
                                                                 )
                                                             }
                                                             disabled={
-                                                                !startDate
+                                                                hourlyServicePrices.length ===
+                                                                0
                                                             }
-                                                            className="w-full rounded-xl border border-neutral-600 bg-neutral-800 px-3 py-3 text-base text-white focus:border-[#d4af37] focus:outline-none focus:ring-2 focus:ring-[#d4af37] disabled:cursor-not-allowed disabled:opacity-60"
-                                                        />
+                                                            className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors duration-200 ${durationUnit === 'hour' ? 'bg-[#d4af37] text-black shadow' : 'text-neutral-300 hover:bg-neutral-700'} disabled:cursor-not-allowed disabled:opacity-50`}
+                                                        >
+                                                            {copy.hourlyRent}
+                                                        </button>
                                                     </div>
                                                 </div>
+
+                                                {durationUnit === 'hour' ? (
+                                                    <>
+                                                        <div>
+                                                            <label
+                                                                htmlFor="calcRentalDate"
+                                                                className="mb-2 block text-sm font-medium text-neutral-300"
+                                                            >
+                                                                {
+                                                                    copy.rentalDate
+                                                                }
+                                                            </label>
+                                                            <input
+                                                                id="calcRentalDate"
+                                                                type="date"
+                                                                min={today}
+                                                                value={startDate}
+                                                                onChange={(event) =>
+                                                                    setStartDate(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                className="w-full rounded-xl border border-neutral-600 bg-neutral-800 px-3 py-3 text-base text-white focus:border-[#d4af37] focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="mb-2 block text-sm font-medium text-neutral-300">
+                                                                {
+                                                                    copy.hourlyPackage
+                                                                }
+                                                            </label>
+                                                            <div className="grid grid-cols-3 gap-3">
+                                                                {hourlyServicePrices.map(
+                                                                    (
+                                                                        tariff,
+                                                                    ) => (
+                                                                        <button
+                                                                            key={
+                                                                                tariff.id
+                                                                            }
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                setSelectedHourlyTariffId(
+                                                                                    String(
+                                                                                        tariff.id,
+                                                                                    ),
+                                                                                )
+                                                                            }
+                                                                            className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                                                                                String(
+                                                                                    selectedHourlyTariffId,
+                                                                                ) ===
+                                                                                String(
+                                                                                    tariff.id,
+                                                                                )
+                                                                                    ? 'border-[#d4af37] bg-[#d4af37] text-black'
+                                                                                    : 'border-neutral-600 bg-neutral-800 text-neutral-200 hover:border-neutral-500 hover:bg-neutral-700'
+                                                                            }`}
+                                                                        >
+                                                                            {formatPriceTierLabel(
+                                                                                tariff,
+                                                                                locale,
+                                                                            )}
+                                                                        </button>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                        <div>
+                                                            <label
+                                                                htmlFor="calcStartDate"
+                                                                className="mb-2 block text-sm font-medium text-neutral-300"
+                                                            >
+                                                                {
+                                                                    copy.startDate
+                                                                }
+                                                            </label>
+                                                            <input
+                                                                id="calcStartDate"
+                                                                type="date"
+                                                                min={today}
+                                                                value={startDate}
+                                                                onChange={(event) =>
+                                                                    setStartDate(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                className="w-full rounded-xl border border-neutral-600 bg-neutral-800 px-3 py-3 text-base text-white focus:border-[#d4af37] focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label
+                                                                htmlFor="calcEndDate"
+                                                                className="mb-2 block text-sm font-medium text-neutral-300"
+                                                            >
+                                                                {copy.endDate}
+                                                            </label>
+                                                            <input
+                                                                id="calcEndDate"
+                                                                type="date"
+                                                                min={
+                                                                    startDate ||
+                                                                    today
+                                                                }
+                                                                value={endDate}
+                                                                onChange={(event) =>
+                                                                    setEndDate(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    !startDate
+                                                                }
+                                                                className="w-full rounded-xl border border-neutral-600 bg-neutral-800 px-3 py-3 text-base text-white focus:border-[#d4af37] focus:outline-none focus:ring-2 focus:ring-[#d4af37] disabled:cursor-not-allowed disabled:opacity-60"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </>
                                         )}
 
@@ -684,7 +975,9 @@ export default function CalculatorModal({
                                                     </div>
                                                     <div className="rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
                                                         <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">
-                                                            {copy.perDay}
+                                                            {
+                                                                calculation.priceLabel
+                                                            }
                                                         </p>
                                                         <p className="mt-1 text-sm font-semibold text-white">
                                                             <FormattedPrice
@@ -701,7 +994,7 @@ export default function CalculatorModal({
                                                         </p>
                                                         <p className="mt-1 text-sm font-semibold text-white">
                                                             {
-                                                                copy.availableForDates
+                                                                calculation.availabilityLabel
                                                             }
                                                         </p>
                                                     </div>

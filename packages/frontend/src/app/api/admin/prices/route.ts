@@ -31,9 +31,10 @@ export async function GET(request: NextRequest) {
                 supabase
                     .from('prices')
                     .select(
-                        'id, car_id, days_from, days_to, price_per_day, with_driver, conditions, created_at, cars(id, name, brand, class)',
+                        'id, car_id, days_from, days_to, price_per_day, with_driver, duration_unit, conditions, created_at, cars(id, name, brand, class)',
                     )
                     .order('car_id')
+                    .order('duration_unit')
                     .order('with_driver')
                     .order('days_from'),
             ]);
@@ -111,11 +112,12 @@ export const POST = withRateLimit(
                         days_to: payload.daysTo,
                         price_per_day: payload.pricePerDay,
                         with_driver: payload.withDriver,
+                        duration_unit: payload.durationUnit,
                         conditions: payload.conditions,
                     },
                 ])
                 .select(
-                    'id, car_id, days_from, days_to, price_per_day, with_driver, conditions, created_at, cars(id, name, brand, class)',
+                    'id, car_id, days_from, days_to, price_per_day, with_driver, duration_unit, conditions, created_at, cars(id, name, brand, class)',
                 )
                 .single();
 

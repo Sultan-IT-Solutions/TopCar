@@ -14,6 +14,7 @@ import { useScrollLock } from '@/hooks/useScrollLock'; // <--- ДОБАВЛЕН�
 import { csrfClientHelper } from '@/lib/csrf-client';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslations } from '@/lib/i18n';
+import { DurationUnit } from '@/types';
 
 // --- Вспомогательная функция, добавленная прямо сюда ---
 const formatPhoneNumber = (value: string): string => {
@@ -52,6 +53,8 @@ type SelectedTariff = {
     dateFrom?: string;
     dateTo?: string;
     conditions?: string;
+    durationUnit?: DurationUnit;
+    durationValue?: number;
 };
 
 type Props = {

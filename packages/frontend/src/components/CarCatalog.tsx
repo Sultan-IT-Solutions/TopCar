@@ -19,7 +19,12 @@ import LocalizedLink from './LocalizedLink';
 
 function getStartingPrice(car: Car): number {
     const tierPrices = (car.prices ?? [])
-        .filter((price) => !price.with_driver && price.price_per_day > 0)
+        .filter(
+            (price) =>
+                !price.with_driver &&
+                price.price_per_day > 0 &&
+                (price.duration_unit ?? 'day') === 'day',
+        )
         .map((price) => price.price_per_day);
     const candidates = [car.price_per_day, car.price, ...tierPrices].filter(
         (value): value is number => typeof value === 'number' && value > 0,
@@ -198,20 +203,22 @@ function CarCard({
                     </div>
 
                     <div className="flex flex-1 flex-col gap-5 p-5">
-                        <div className="grid grid-cols-2 gap-3">
-                            {previewFacts.map((fact) => (
-                                <div
-                                    key={`${car.id}-${fact.label}`}
-                                    className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3"
-                                >
-                                    <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-500">
-                                        {fact.label}
-                                    </p>
-                                    <p className="mt-1 text-sm font-semibold text-white">
-                                        {fact.value}
-                                    </p>
-                                </div>
-                            ))}
+                        <div className="overflow-hidden rounded-[24px] border border-white/8 bg-white/[0.02] transition-all duration-300 group-hover:border-[#d4af37]/18 group-hover:bg-white/[0.04]">
+                            <div className="grid max-h-0 grid-cols-2 gap-3 px-4 py-0 opacity-0 transition-all duration-300 ease-out group-hover:max-h-56 group-hover:px-4 group-hover:py-4 group-hover:opacity-100">
+                                {previewFacts.map((fact) => (
+                                    <div
+                                        key={`${car.id}-${fact.label}`}
+                                        className="rounded-2xl border border-white/8 bg-black/25 px-4 py-3"
+                                    >
+                                        <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-500">
+                                            {fact.label}
+                                        </p>
+                                        <p className="mt-1 text-sm font-semibold text-white">
+                                            {fact.value}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {previewImages.length > 0 && (
@@ -278,17 +285,10 @@ export default function CarCatalog({
         if (selectedCategory === 'all') return cars;
         return cars.filter((car) => car.class === selectedCategory);
     }, [cars, selectedCategory]);
-    const gridClassName = useMemo(() => {
-        if (filteredCars.length <= 1) {
-            return 'mx-auto mt-10 grid max-w-2xl grid-cols-1 gap-8';
-        }
-
-        if (filteredCars.length === 2) {
-            return 'mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-2';
-        }
-
-        return 'mx-auto mt-10 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3';
-    }, [filteredCars.length]);
+    const gridClassName = useMemo(
+        () => 'mt-10 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3',
+        [],
+    );
     const sectionLabel =
         locale === 'en'
             ? 'Fleet selection'
@@ -310,13 +310,15 @@ export default function CarCatalog({
             <div className="mx-auto max-w-7xl">
                 {showHeading && (
                     <FadeInWhenVisible>
-                        <h2 className="text-center text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
-                            {t('autopark.title')}{' '}
-                            <span className="text-[#d4af37]">
+                        <div className="text-center">
+                            <p className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
+                                {t('autopark.title')}
+                            </p>
+                            <h2 className="mt-3 text-4xl font-extrabold leading-[1.04] tracking-tight text-[#d4af37] sm:text-5xl lg:text-6xl">
                                 {t('autopark.subtitle')}
-                            </span>
+                            </h2>
                             <span className="mx-auto mt-4 block h-0.5 w-20 bg-[#d4af37]/50"></span>
-                        </h2>
+                        </div>
                     </FadeInWhenVisible>
                 )}
 

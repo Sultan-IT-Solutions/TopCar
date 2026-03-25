@@ -353,6 +353,7 @@ export async function PATCH(
             .select('id')
             .eq('car_id', carId)
             .eq('with_driver', false)
+            .eq('duration_unit', 'day')
             .eq('days_from', 1)
             .eq('days_to', 365)
             .eq('conditions', 'Базовый тариф')
@@ -377,6 +378,7 @@ export async function PATCH(
                     days_to: 365,
                     price_per_day: price,
                     with_driver: false,
+                    duration_unit: 'day',
                     conditions: 'Базовый тариф',
                 },
             ]);

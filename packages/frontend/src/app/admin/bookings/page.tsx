@@ -14,6 +14,7 @@ import {
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import { csrfClientHelper } from '@/lib/csrf-client';
 import { useAdminSession } from '@/hooks/useAdminSession';
+import { DurationUnit } from '@/types';
 
 type AdminBooking = {
     id: string;
@@ -22,6 +23,8 @@ type AdminBooking = {
     user_phone: string;
     date_from: string;
     date_to: string;
+    duration_unit?: DurationUnit;
+    duration_value?: number | null;
     total_price?: number;
     status?: string;
     created_at: string;
@@ -33,6 +36,31 @@ function formatDate(value: string) {
     } catch {
         return value;
     }
+}
+
+function formatDuration(value?: number | null, unit?: DurationUnit) {
+    if (!value) {
+        return '';
+    }
+
+    if (unit === 'hour') {
+        if (value % 10 === 1 && value % 100 !== 11) return `${value} час`;
+        if (
+            [2, 3, 4].includes(value % 10) &&
+            ![12, 13, 14].includes(value % 100)
+        ) {
+            return `${value} часа`;
+        }
+
+        return `${value} часов`;
+    }
+
+    if (value % 10 === 1 && value % 100 !== 11) return `${value} день`;
+    if ([2, 3, 4].includes(value % 10) && ![12, 13, 14].includes(value % 100)) {
+        return `${value} дня`;
+    }
+
+    return `${value} дней`;
 }
 
 export default function AdminBookingsPage() {
@@ -280,8 +308,18 @@ export default function AdminBookingsPage() {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4 text-neutral-300">
-                                                        {formatDate(booking.date_from)} —{' '}
-                                                        {formatDate(booking.date_to)}
+                                                        <div>
+                                                            {formatDate(booking.date_from)} —{' '}
+                                                            {formatDate(booking.date_to)}
+                                                        </div>
+                                                        {booking.duration_value ? (
+                                                            <div className="mt-1 text-xs text-neutral-500">
+                                                                {formatDuration(
+                                                                    booking.duration_value,
+                                                                    booking.duration_unit,
+                                                                )}
+                                                            </div>
+                                                        ) : null}
                                                     </td>
                                                     <td className="px-4 py-4 text-neutral-300">
                                                         {booking.total_price

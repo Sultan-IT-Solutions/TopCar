@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { DurationUnit } from '@/types';
 
 export type AdminTariffInput = {
     carId: number;
@@ -9,6 +10,7 @@ export type AdminTariffInput = {
     pricePerDay: number;
     withDriver: boolean;
     conditions: string | null;
+    durationUnit: DurationUnit;
 };
 
 type ExistingTariff = {
@@ -27,6 +29,7 @@ export function normalizeAdminTariffInput(payload: Record<string, unknown>) {
         payload.withDriver === 'true' ||
         payload.withDriver === 1 ||
         payload.withDriver === '1';
+    const durationUnit = payload.durationUnit === 'hour' ? 'hour' : 'day';
     const conditions = String(payload.conditions ?? '').trim() || null;
 
     return {
@@ -36,6 +39,7 @@ export function normalizeAdminTariffInput(payload: Record<string, unknown>) {
         pricePerDay,
         withDriver,
         conditions,
+        durationUnit,
     } satisfies AdminTariffInput;
 }
 
@@ -45,15 +49,25 @@ export function validateAdminTariffInput(input: AdminTariffInput) {
     }
 
     if (!Number.isInteger(input.daysFrom) || input.daysFrom <= 0) {
-        return 'Укажите корректное значение "от дней".';
+        return input.durationUnit === 'hour'
+            ? 'Укажите корректное значение "от часов".'
+            : 'Укажите корректное значение "от дней".';
     }
 
     if (!Number.isInteger(input.daysTo) || input.daysTo < input.daysFrom) {
-        return 'Укажите корректное значение "до дней".';
+        return input.durationUnit === 'hour'
+            ? 'Укажите корректное значение "до часов".'
+            : 'Укажите корректное значение "до дней".';
     }
 
     if (!Number.isFinite(input.pricePerDay) || input.pricePerDay <= 0) {
-        return 'Укажите корректную цену за сутки.';
+        return input.durationUnit === 'hour'
+            ? 'Укажите корректную цену за период.'
+            : 'Укажите корректную цену за сутки.';
+    }
+
+    if (input.durationUnit === 'hour' && input.daysFrom !== input.daysTo) {
+        return 'Для почасового тарифа укажите одинаковое количество часов. Например: 3-3, 6-6 или 12-12.';
     }
 
     return null;
@@ -69,6 +83,7 @@ export async function findOverlappingTariff(
         .select('id, days_from, days_to')
         .eq('car_id', input.carId)
         .eq('with_driver', input.withDriver)
+        .eq('duration_unit', input.durationUnit)
         .order('days_from', { ascending: true });
 
     if (error) {

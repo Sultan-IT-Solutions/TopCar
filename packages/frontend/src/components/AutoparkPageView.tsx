@@ -105,11 +105,11 @@ export default function AutoparkPageView({
                             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#f0dca0]/80">
                                 {showcaseLabel}
                             </p>
-                            <h1 className="mt-5 text-4xl font-semibold leading-[0.98] text-white sm:text-5xl lg:text-6xl">
-                                {t('autopark.title')}{' '}
-                                <span className="text-[#d4af37]">
-                                    {t('autopark.subtitle')}
-                                </span>
+                            <p className="mt-5 text-3xl font-semibold leading-none text-white sm:text-4xl lg:text-5xl">
+                                {t('autopark.title')}
+                            </p>
+                            <h1 className="mt-3 text-4xl font-semibold leading-[1.02] text-[#d4af37] sm:text-5xl lg:text-6xl">
+                                {t('autopark.subtitle')}
                             </h1>
                             <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-neutral-300 sm:text-lg">
                                 {t('autopark.description')}

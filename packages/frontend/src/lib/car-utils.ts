@@ -136,17 +136,37 @@ export function isCarAvailable(car: Car): boolean {
 export function getRentalDays(startDate: string, endDate: string): number {
     if (!startDate || !endDate) return 0;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const parseDateOnly = (value: string): Date | null => {
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+        if (!match) return null;
 
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const date = new Date(Date.UTC(year, month - 1, day));
+
+        if (
+            date.getUTCFullYear() !== year ||
+            date.getUTCMonth() !== month - 1 ||
+            date.getUTCDate() !== day
+        ) {
+            return null;
+        }
+
+        return date;
+    };
+
+    const start = parseDateOnly(startDate);
+    const end = parseDateOnly(endDate);
+
+    if (!start || !end) {
         return 0;
     }
 
     const diff = end.getTime() - start.getTime();
     if (diff < 0) return 0;
 
-    return Math.max(1, Math.ceil(diff / DAY_IN_MS));
+    return Math.floor(diff / DAY_IN_MS) + 1;
 }
 
 export function formatRentalPeriod(

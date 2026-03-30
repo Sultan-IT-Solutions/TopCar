@@ -15,7 +15,7 @@ export default function HomeCarCatalogSection() {
     useEffect(() => {
         const fetchCars = async () => {
             try {
-                const response = await fetch('/api/cars?scope=featured&limit=6', {
+                const response = await fetch('/api/cars?includeUnavailable=1', {
                     cache: 'no-store',
                 });
                 const payload = await response.json();
@@ -42,16 +42,16 @@ export default function HomeCarCatalogSection() {
     const copy =
         locale === 'en'
             ? {
-                  title: 'A curated selection of cars for the homepage is being prepared. You can already browse the full fleet on the catalog page.',
+                  title: 'The fleet is temporarily unavailable in this block. You can still open the main catalog page.',
                   action: 'Open fleet page',
               }
             : locale === 'kk'
               ? {
-                    title: 'Басты бетке арналған көліктер топтамасы дайындалып жатыр. Қазірдің өзінде толық автопаркті каталог бетінен көре аласыз.',
+                    title: 'Автопарк осы блокта уақытша қолжетімсіз. Негізгі каталог бетін ашуға болады.',
                     action: 'Автопаркке өту',
                 }
               : {
-                    title: 'Подборка автомобилей для главной страницы готовится. Полный автопарк уже доступен на странице каталога.',
+                    title: 'Автопарк в этом блоке временно недоступен. Вы можете открыть основную страницу каталога.',
                     action: 'Открыть автопарк',
                 };
 

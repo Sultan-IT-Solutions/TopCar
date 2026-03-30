@@ -62,7 +62,7 @@ export default function DownloadPage() {
                   homeCta: 'Back to home',
                   installCta: 'Open installation page',
                   qrHint: 'Scan the QR code from your phone to open the installation page instantly.',
-                  qrPlaceholder: 'Add a QR code in the admin panel to show it here.',
+                  qrPlaceholder: 'A quick-install QR code will be shown in this block.',
               }
             : locale === 'kk'
               ? {
@@ -101,7 +101,7 @@ export default function DownloadPage() {
                     installCta: 'Орнату бетін ашу',
                     qrHint: 'Орнату бетін телефоннан бірден ашу үшін QR-кодты сканерлеңіз.',
                     qrPlaceholder:
-                        'QR-кодты осы жерде көрсету үшін оны админ-панель арқылы жүктеңіз.',
+                        'Қолданбаны жылдам орнатуға арналған QR-код осы жерде көрсетіледі.',
                 }
               : {
                     title: 'Приложение',
@@ -139,7 +139,7 @@ export default function DownloadPage() {
                     installCta: 'Открыть страницу установки',
                     qrHint: 'Отсканируйте QR-код с телефона, чтобы сразу открыть страницу установки.',
                     qrPlaceholder:
-                        'Загрузите QR-код через админ-панель, и он будет показан в этом блоке.',
+                        'QR-код для быстрой установки приложения будет показан в этом блоке.',
                 };
 
     const benefits = [

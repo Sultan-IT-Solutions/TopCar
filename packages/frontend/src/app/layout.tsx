@@ -1,6 +1,5 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
-import { Manrope } from 'next/font/google';
 import Script from 'next/script'; // <-- Импортируем компонент Script
 import '@/styles/globals.css';
 
@@ -9,12 +8,6 @@ import { LocaleProvider } from '@/context/LocaleContext';
 import { SiteConfigProvider } from '@/context/SiteConfigContext';
 import FloatingWidget from '@/components/FloatingWidget';
 import { loadSiteConfig } from '@/lib/site-config-server';
-
-const manrope = Manrope({
-    subsets: ['latin', 'cyrillic'],
-    weight: ['400', '500', '600', '700', '800'],
-    display: 'swap',
-});
 
 export const metadata: Metadata = {
     title: {
@@ -53,7 +46,7 @@ export default async function RootLayout({
     const siteConfig = await loadSiteConfig();
 
     return (
-        <html lang="ru" className={manrope.className}>
+        <html lang="ru">
             <head>
                 {/* --- Google tag (gtag.js) --- */}
                 <Script

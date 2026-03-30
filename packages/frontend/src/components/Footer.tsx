@@ -72,7 +72,7 @@ export default function Footer() {
                       'Save TopCar to your home screen to open the fleet, calculator, contacts and personal offers in one tap.',
                   pwaButton: 'Open installation page',
                   pwaHint: 'Scan the QR code or open the installation page on your phone.',
-                  qrPlaceholder: 'Upload a QR code in the admin panel to display it here.',
+                  qrPlaceholder: 'A quick-install QR code will appear in this block.',
               }
             : locale === 'kk'
               ? {
@@ -83,7 +83,7 @@ export default function Footer() {
                     pwaButton: 'Орнату бетіне өту',
                     pwaHint: 'QR-кодты сканерлеңіз немесе орнату бетін телефоннан ашыңыз.',
                     qrPlaceholder:
-                        'Осы жерде көрсету үшін QR-кодты админ-панель арқылы жүктеңіз.',
+                        'Қолданбаны жылдам орнатуға арналған QR-код осы блокта көрсетіледі.',
                 }
               : {
                     pwaLabel: 'Приложение TopCar',
@@ -94,7 +94,7 @@ export default function Footer() {
                     pwaHint:
                         'Отсканируйте QR-код или откройте страницу установки на телефоне.',
                     qrPlaceholder:
-                        'Загрузите QR-код через админ-панель, и он появится в этом блоке.',
+                        'QR-код для быстрой установки приложения появится в этом блоке.',
                 };
 
     // --- ОБНОВЛЕННЫЙ МАССИВ ССЫЛОК ---

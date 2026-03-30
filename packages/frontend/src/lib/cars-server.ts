@@ -126,7 +126,27 @@ export async function loadCarsCatalog(
         };
     }
 
-    const cars = await backfillCarSlugs((response.data as Car[]) || []);
+    let rows = (response.data as Car[]) || [];
+
+    if (options.featuredOnly && rows.length === 0) {
+        let fallbackQuery = supabase
+            .from('cars')
+            .select('*, prices (*)')
+            .order('brand')
+            .order('name');
+
+        if (options.limit && options.limit > 0) {
+            fallbackQuery = fallbackQuery.limit(options.limit);
+        }
+
+        const fallbackResponse = await fallbackQuery;
+
+        if (!fallbackResponse.error) {
+            rows = (fallbackResponse.data as Car[]) || [];
+        }
+    }
+
+    const cars = await backfillCarSlugs(rows);
     const visibleCars =
         options.includeUnavailable === true
             ? cars

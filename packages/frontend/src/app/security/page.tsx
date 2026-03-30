@@ -55,7 +55,7 @@ export default function SecurityPage() {
                   view: 'View',
                   download: 'Download',
                   documentsEmpty:
-                      'Documents will appear here after they are uploaded in the admin panel.',
+                      'Documents will appear here soon.',
                   documentsError:
                       'The documents could not be loaded right now. Please try again later.',
                   ctaTitle: 'Need originals or official confirmation?',
@@ -85,7 +85,7 @@ export default function SecurityPage() {
                     view: 'Қарау',
                     download: 'Жүктеу',
                     documentsEmpty:
-                        'Құжаттар админ-панель арқылы жүктелгеннен кейін осы жерде көрінеді.',
+                        'Құжаттар осы жерде көрінеді.',
                     documentsError:
                         'Құжаттарды қазір жүктеу мүмкін болмады. Кейінірек қайталап көріңіз.',
                     ctaTitle: 'Түпнұсқалар немесе растау керек пе?',
@@ -114,7 +114,7 @@ export default function SecurityPage() {
                     view: 'Просмотр',
                     download: 'Скачать',
                     documentsEmpty:
-                        'Документы появятся здесь после загрузки через админ-панель.',
+                        'Документы скоро появятся здесь.',
                     documentsError:
                         'Сейчас не удалось загрузить документы. Попробуйте позже.',
                     ctaTitle: 'Нужны оригиналы или подтверждение?',

@@ -21,18 +21,64 @@ import {
     XCircleIcon,
 } from '@heroicons/react/20/solid';
 
-const MessengerIconPlaceholder = ({
-    name,
-    className,
-}: {
-    name: string;
-    className?: string;
-}) => (
-    <div
-        className={`inline-flex items-center justify-center w-6 h-6 rounded-full bg-neutral-700 text-xs text-white group-hover:bg-[#d4af37] ${className}`}
+const WhatsAppIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
+    <svg
+        className={className}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
     >
-        {name.substring(0, 1)}
-    </div>
+        <path d="M16.6 14c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.6.7-.8.9-.1.1-.3.2-.5.1-.3-.1-.9-.3-1.8-.9-.6-.5-1.1-1-1.2-1.2-.1-.2 0-.3.1-.4.1-.1.2-.2.3-.3.1-.1.2-.3.2-.4.1-.1.1-.3 0-.4-.1-.1-.6-1.5-.8-2-.2-.5-.4-.4-.5-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 1.9 0 1.1.8 2.2 1 2.3.1.1 1.5 2.3 3.6 3.2.5.2 1 .4 1.3.5.6.2 1.1.2 1.5.1.5-.1 1.5-.6 1.7-1.2.2-.5.2-1 0-1.1-.1-.1-.3-.2-.5-.2zM12 2a10 10 0 100 20 10 10 0 000-20z" />
+    </svg>
+);
+
+const TelegramIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
+    <svg
+        className={className}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden="true"
+    >
+        <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-1.4.2-1.75l15.5-5.25c.83-.28 1.5.2 1.28 1.28l-5.25 15.5c-.35.83-1.4.88-1.75.2L9.78 18.65z" />
+    </svg>
+);
+
+const InstagramIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
+    <svg
+        className={className}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+    </svg>
+);
+
+const ViberIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
+    <span
+        className={`${className} inline-flex items-center justify-center text-[11px] font-bold uppercase`}
+        aria-hidden="true"
+    >
+        V
+    </span>
+);
+
+const MaxIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
+    <span
+        className={`${className} inline-flex items-center justify-center text-[10px] font-bold uppercase`}
+        aria-hidden="true"
+    >
+        Max
+    </span>
 );
 
 export default function ContactPage() {
@@ -277,48 +323,54 @@ export default function ContactPage() {
         profile.whatsappUrl
             ? {
                   name: 'WhatsApp',
-                  Icon: () => <MessengerIconPlaceholder name="WA" />,
+                  Icon: WhatsAppIcon,
                   href: profile.whatsappUrl,
                   text: content.whatsapp,
+                  color: 'text-[#25D366]',
               }
             : null,
         profile.telegramUrl
             ? {
                   name: 'Telegram',
-                  Icon: () => <MessengerIconPlaceholder name="TG" />,
+                  Icon: TelegramIcon,
                   href: profile.telegramUrl,
                   text: content.telegram,
+                  color: 'text-[#229ED9]',
               }
             : null,
         profile.instagramUrl
             ? {
                   name: 'Instagram',
-                  Icon: () => <MessengerIconPlaceholder name="IG" />,
+                  Icon: InstagramIcon,
                   href: profile.instagramUrl,
                   text: content.instagram,
+                  color: 'text-[#F77737]',
               }
             : null,
         profile.viberUrl
             ? {
                   name: 'Viber',
-                  Icon: () => <MessengerIconPlaceholder name="V" />,
+                  Icon: ViberIcon,
                   href: profile.viberUrl,
                   text: content.viber,
+                  color: 'text-[#7360F2]',
               }
             : null,
         profile.maxUrl
             ? {
                   name: 'Max',
-                  Icon: () => <MessengerIconPlaceholder name="M" />,
+                  Icon: MaxIcon,
                   href: profile.maxUrl,
                   text: content.max,
+                  color: 'text-[#d4af37]',
               }
             : null,
     ].filter(Boolean) as Array<{
         name: string;
-        Icon: ComponentType;
+        Icon: ComponentType<{ className?: string }>;
         href: string;
         text: string;
+        color: string;
     }>;
 
     // Click handlers for analytics
@@ -438,7 +490,9 @@ export default function ContactPage() {
                                                         linkItem.href,
                                                     )}
                                                 >
-                                                    <linkItem.Icon />
+                                                    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/5 transition-colors duration-300 group-hover:bg-black/10 ${linkItem.color}`}>
+                                                        <linkItem.Icon className="h-5 w-5" />
+                                                    </span>
                                                     <span className="text-sm font-medium">
                                                         {linkItem.text}
                                                     </span>

@@ -27,6 +27,8 @@ export async function GET(request: NextRequest) {
         const { data, error } = await supabase
             .from('cars')
             .select('*')
+            .order('is_featured_home', { ascending: false })
+            .order('featured_order', { ascending: true })
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -69,6 +71,11 @@ export const POST = withRateLimit(
             const seatsRaw = String(formData.get('seats') || '').trim();
             const powerRaw = String(formData.get('power') || '').trim();
             const accelerationRaw = String(formData.get('acceleration') || '').trim();
+            const isFeaturedHome =
+                String(formData.get('is_featured_home') || '').trim() === 'true';
+            const featuredOrderRaw = String(
+                formData.get('featured_order') || '',
+            ).trim();
             const file = formData.get('file');
 
             if (!name || !brand || !carClass || !Number.isFinite(price) || price <= 0) {
@@ -89,6 +96,7 @@ export const POST = withRateLimit(
             const seats = seatsRaw ? Number(seatsRaw) : null;
             const power = powerRaw ? Number(powerRaw) : null;
             const acceleration = accelerationRaw ? Number(accelerationRaw) : null;
+            const featuredOrder = featuredOrderRaw ? Number(featuredOrderRaw) : 0;
 
             if (yearRaw && (year === null || !Number.isFinite(year) || year <= 0)) {
                 return jsonNoStore(
@@ -125,6 +133,16 @@ export const POST = withRateLimit(
             ) {
                 return jsonNoStore(
                     { message: 'Разгон до 100 указан некорректно.' },
+                    { status: 400 },
+                );
+            }
+
+            if (
+                featuredOrderRaw &&
+                (!Number.isFinite(featuredOrder) || featuredOrder < 0)
+            ) {
+                return jsonNoStore(
+                    { message: 'Порядок показа на главной указан некорректно.' },
                     { status: 400 },
                 );
             }
@@ -199,6 +217,8 @@ export const POST = withRateLimit(
                         seats,
                         power,
                         acceleration,
+                        is_featured_home: isFeaturedHome,
+                        featured_order: featuredOrder,
                         image_url: publicUrl.publicUrl,
                     },
                 ])

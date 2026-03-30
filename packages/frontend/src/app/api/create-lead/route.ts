@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { ensureProtectedMutationRequest } from '@/lib/request-security';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
-import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { getRequestUser } from '@/lib/user-session';
 import { DurationUnit } from '@/types';
+import {
+    createBookingForRequest,
+    createRequestRecord,
+} from '@/lib/requests-server';
+import {
+    recordPromoRedemption,
+    validatePromoCode,
+} from '@/lib/promos-server';
+import { trackAnalyticsEvent } from '@/lib/analytics-events-server';
 
 export const runtime = 'nodejs';
 
@@ -14,10 +22,13 @@ type BookingDetails = {
     price?: number;
     conditions?: string;
     carId?: number;
+    tariffId?: number;
     dateFrom?: string;
     dateTo?: string;
     startDate?: string;
     endDate?: string;
+    startsAt?: string;
+    endsAt?: string;
     durationUnit?: DurationUnit;
     durationValue?: number;
 };
@@ -25,9 +36,14 @@ type BookingDetails = {
 type LeadRequestPayload = {
     userName?: string;
     userPhone?: string;
+    userEmail?: string;
     carName?: string;
     message?: string;
     bookingDetails?: BookingDetails;
+    promoCode?: string;
+    source?: string;
+    locale?: string;
+    pagePath?: string;
 };
 
 const {
@@ -41,34 +57,43 @@ function isEmail(value: string) {
     return /\S+@\S+\.\S+/.test(value);
 }
 
-function formatLeadComments(
-    bookingDetails: BookingDetails | undefined,
-    extraMessage?: string,
-) {
-    const lines = [
-        `Тип услуги: ${bookingDetails?.serviceType || 'Не указано'}`,
-        `Период аренды: ${bookingDetails?.duration || 'Не указано'}`,
-        `Предварительная стоимость: ${
-            bookingDetails?.price
-                ? `${bookingDetails.price.toLocaleString('ru-RU')} ₸`
-                : 'Не указано'
-        }`,
-        `Условия: ${bookingDetails?.conditions || 'Без дополнительных условий'}`,
-    ];
-
-    if (extraMessage) {
-        lines.push(`Сообщение клиента: ${extraMessage}`);
-    }
-
-    return lines.join('\n');
+function normalizePhone(value?: string) {
+    const digits = String(value ?? '')
+        .replace(/[^\d+]/g, '')
+        .trim();
+    return digits || null;
 }
 
-function isValidDateString(value?: string) {
+function normalizeEmail(value?: string | null) {
+    const normalized = String(value ?? '')
+        .trim()
+        .toLowerCase();
+    return normalized && isEmail(normalized) ? normalized : null;
+}
+
+function isValidDateString(value?: string | null) {
     if (!value) {
         return false;
     }
 
     return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(value).getTime());
+}
+
+function isValidDateTimeString(value?: string | null) {
+    if (!value) {
+        return false;
+    }
+
+    return !Number.isNaN(new Date(value).getTime());
+}
+
+function inferWithDriver(serviceType?: string) {
+    const normalized = String(serviceType ?? '').toLowerCase();
+    return (
+        normalized.includes('водител') ||
+        normalized.includes('driver') ||
+        normalized.includes('жүргізуш')
+    );
 }
 
 function isBookingIntent(bookingDetails?: BookingDetails) {
@@ -81,68 +106,83 @@ function isBookingIntent(bookingDetails?: BookingDetails) {
             bookingDetails.dateTo ||
             bookingDetails.startDate ||
             bookingDetails.endDate ||
+            bookingDetails.startsAt ||
+            bookingDetails.endsAt ||
             bookingDetails.carId ||
             Number(bookingDetails.price || 0) > 0,
     );
 }
 
 function getNormalizedBookingDates(bookingDetails?: BookingDetails) {
+    const dateFrom = bookingDetails?.dateFrom || bookingDetails?.startDate;
+    const dateTo = bookingDetails?.dateTo || bookingDetails?.endDate || dateFrom;
+
     return {
-        dateFrom: bookingDetails?.dateFrom || bookingDetails?.startDate,
-        dateTo: bookingDetails?.dateTo || bookingDetails?.endDate,
+        dateFrom,
+        dateTo,
     };
 }
 
-async function saveBookingRecord(payload: {
-    userId?: string | null;
-    userName: string;
-    userPhone: string;
-    carName: string;
-    bookingDetails?: BookingDetails;
-}) {
-    const booking = payload.bookingDetails;
-    const { dateFrom, dateTo } = getNormalizedBookingDates(booking);
-    const normalizedDurationUnit =
-        booking?.durationUnit === 'hour' ? 'hour' : 'day';
-    const normalizedDurationValue =
-        Number.isFinite(Number(booking?.durationValue)) &&
-        Number(booking?.durationValue) > 0
-            ? Number(booking?.durationValue)
-            : null;
+function getNormalizedBookingWindow(bookingDetails?: BookingDetails) {
+    const durationUnit: DurationUnit =
+        bookingDetails?.durationUnit === 'hour' ? 'hour' : 'day';
+    const { dateFrom, dateTo } = getNormalizedBookingDates(bookingDetails);
+    const startsAt = bookingDetails?.startsAt ?? null;
+    const endsAt = bookingDetails?.endsAt ?? null;
 
-    if (!booking || !isValidDateString(dateFrom) || !isValidDateString(dateTo)) {
-        return {
-            saved: false as const,
-            reason: 'missing_dates' as const,
-            message: 'Для сохранения бронирования требуется корректно указать даты начала и возврата.',
-        };
+    return {
+        durationUnit,
+        durationValue:
+            Number.isFinite(Number(bookingDetails?.durationValue)) &&
+            Number(bookingDetails?.durationValue) > 0
+                ? Number(bookingDetails?.durationValue)
+                : null,
+        dateFrom,
+        dateTo,
+        startsAt: isValidDateTimeString(startsAt) ? startsAt : null,
+        endsAt: isValidDateTimeString(endsAt) ? endsAt : null,
+    };
+}
+
+function formatLeadComments(
+    bookingDetails: BookingDetails | undefined,
+    extraMessage?: string,
+    promoCode?: string | null,
+    discountAmount?: number,
+    finalAmount?: number,
+) {
+    const lines = [
+        `Тип услуги: ${bookingDetails?.serviceType || 'Не указано'}`,
+        `Период аренды: ${bookingDetails?.duration || 'Не указано'}`,
+        `Предварительная стоимость: ${
+            bookingDetails?.price
+                ? `${bookingDetails.price.toLocaleString('ru-RU')} ₸`
+                : 'Не указано'
+        }`,
+        `Условия: ${bookingDetails?.conditions || 'Без дополнительных условий'}`,
+    ];
+
+    if (promoCode) {
+        lines.push(`Промокод: ${promoCode}`);
     }
 
-    const supabase = getSupabaseAdmin();
-    const { error } = await supabase.from('bookings').insert([
-        {
-            car_id:
-                Number.isFinite(Number(booking.carId)) && Number(booking.carId) > 0
-                    ? Number(booking.carId)
-                    : null,
-            user_id: payload.userId || null,
-            car_name: payload.carName,
-            user_name: payload.userName,
-            user_phone: payload.userPhone,
-            date_from: dateFrom,
-            date_to: dateTo,
-            duration_unit: normalizedDurationUnit,
-            duration_value: normalizedDurationValue,
-            total_price: Number(booking.price || 0),
-            status: 'pending',
-        },
-    ]);
-
-    if (error) {
-        throw error;
+    if (discountAmount && discountAmount > 0) {
+        lines.push(
+            `Скидка: ${discountAmount.toLocaleString('ru-RU')} ₸`,
+        );
     }
 
-    return { saved: true as const, message: null };
+    if (finalAmount && finalAmount > 0) {
+        lines.push(
+            `Итоговая сумма: ${finalAmount.toLocaleString('ru-RU')} ₸`,
+        );
+    }
+
+    if (extraMessage) {
+        lines.push(`Сообщение клиента: ${extraMessage}`);
+    }
+
+    return lines.join('\n');
 }
 
 async function sendLeadToBitrix(payload: {
@@ -235,64 +275,197 @@ export const POST = withRateLimit(
         }
 
         try {
-            const { userName, userPhone, carName, bookingDetails, message } =
-                (await req.json()) as LeadRequestPayload;
+            const {
+                userName,
+                userPhone,
+                userEmail,
+                carName,
+                bookingDetails,
+                message,
+                promoCode,
+                source,
+                locale,
+                pagePath,
+            } = (await req.json()) as LeadRequestPayload;
             const requestUser = await getRequestUser(req);
 
-            if (!userName || !userPhone || !carName) {
+            if (!userName || !carName || (!userPhone && !userEmail)) {
                 return NextResponse.json(
                     { message: 'Missing required fields' },
                     { status: 400 },
                 );
             }
 
-            const comments = formatLeadComments(bookingDetails, message);
-            const deliveredTo: string[] = [];
-            let bitrixLeadId: number | string | undefined;
-            let bookingSaved = false;
-            let bookingSaveMessage: string | null = null;
-            const expectsBookingRecord = isBookingIntent(bookingDetails);
+            const normalizedPhone = normalizePhone(userPhone);
+            const normalizedEmail =
+                normalizeEmail(userEmail) ||
+                (isEmail(String(userPhone ?? '').trim())
+                    ? normalizeEmail(userPhone)
+                    : requestUser?.email ?? null);
+            const contact = normalizedEmail || normalizedPhone;
 
-            if (expectsBookingRecord) {
-                try {
-                    const bookingResult = await saveBookingRecord({
-                        userId: requestUser?.id ?? null,
-                        userName,
-                        userPhone,
-                        carName,
-                        bookingDetails,
-                    });
-
-                    if (bookingResult.saved) {
-                        bookingSaved = true;
-                    } else {
-                        bookingSaveMessage = bookingResult.message;
-                    }
-                } catch (error) {
-                    console.error('Ошибка сохранения бронирования в базе:', error);
-                    bookingSaveMessage =
-                        error instanceof Error
-                            ? error.message
-                            : 'Не удалось сохранить бронирование в базе данных.';
-                }
+            if (!contact) {
+                return NextResponse.json(
+                    { message: 'Укажите корректный телефон или email.' },
+                    { status: 400 },
+                );
             }
 
-            if (expectsBookingRecord && !bookingSaved) {
+            const expectsBookingRecord = isBookingIntent(bookingDetails);
+            const normalizedBooking = getNormalizedBookingWindow(bookingDetails);
+            const withDriver = inferWithDriver(bookingDetails?.serviceType);
+
+            if (
+                expectsBookingRecord &&
+                (!isValidDateString(normalizedBooking.dateFrom) ||
+                    !isValidDateString(normalizedBooking.dateTo))
+            ) {
                 return NextResponse.json(
                     {
                         message:
-                            bookingSaveMessage ||
-                            'Не удалось сохранить бронирование в базе данных.',
-                        bookingSaved: false,
+                            'Для сохранения бронирования требуется корректно указать даты начала и возврата.',
                     },
-                    { status: 500 },
+                    { status: 400 },
                 );
             }
+
+            const subtotalAmount = Number(bookingDetails?.price || 0);
+            const promoValidation =
+                promoCode && subtotalAmount > 0
+                    ? await validatePromoCode({
+                          code: promoCode,
+                          userId: requestUser?.id ?? null,
+                          carId:
+                              Number.isFinite(Number(bookingDetails?.carId)) &&
+                              Number(bookingDetails?.carId) > 0
+                                  ? Number(bookingDetails?.carId)
+                                  : null,
+                          durationUnit: normalizedBooking.durationUnit,
+                          withDriver,
+                          subtotalAmount,
+                      })
+                    : null;
+
+            if (promoValidation && !promoValidation.ok) {
+                return NextResponse.json(
+                    { message: promoValidation.message },
+                    { status: 400 },
+                );
+            }
+
+            const discountAmount = promoValidation?.ok
+                ? promoValidation.discountAmount
+                : 0;
+            const finalAmount = promoValidation?.ok
+                ? promoValidation.finalAmount
+                : subtotalAmount;
+
+            const createdRequest = await createRequestRecord({
+                requestType: expectsBookingRecord ? 'booking' : 'contact',
+                source: source || 'website',
+                userId: requestUser?.id ?? null,
+                carId:
+                    Number.isFinite(Number(bookingDetails?.carId)) &&
+                    Number(bookingDetails?.carId) > 0
+                        ? Number(bookingDetails?.carId)
+                        : null,
+                tariffId:
+                    Number.isFinite(Number(bookingDetails?.tariffId)) &&
+                    Number(bookingDetails?.tariffId) > 0
+                        ? Number(bookingDetails?.tariffId)
+                        : null,
+                carName,
+                userName,
+                userPhone: normalizedPhone,
+                userEmail: normalizedEmail,
+                message: message || bookingDetails?.conditions || null,
+                serviceType: bookingDetails?.serviceType ?? null,
+                withDriver,
+                durationUnit: normalizedBooking.durationUnit,
+                durationValue: normalizedBooking.durationValue,
+                requestedDateFrom: normalizedBooking.dateFrom ?? null,
+                requestedDateTo: normalizedBooking.dateTo ?? null,
+                startsAt: normalizedBooking.startsAt,
+                endsAt: normalizedBooking.endsAt,
+                subtotalAmount,
+                discountAmount,
+                finalAmount,
+                promoCode: promoValidation?.ok ? promoValidation.promo.code : null,
+                promoCodeId: promoValidation?.ok
+                    ? promoValidation.promo.id
+                    : null,
+                locale: locale || 'ru',
+                metadata: {
+                    pagePath: pagePath || req.nextUrl.pathname,
+                    bookingDetails: bookingDetails ?? {},
+                },
+            });
+
+            let bookingSaved = false;
+            let bookingId: string | null = null;
+
+            if (expectsBookingRecord && normalizedBooking.dateFrom && normalizedBooking.dateTo) {
+                const booking = await createBookingForRequest({
+                    requestId: createdRequest.id,
+                    promoCodeId: promoValidation?.ok ? promoValidation.promo.id : null,
+                    promoCode: promoValidation?.ok ? promoValidation.promo.code : null,
+                    discountAmount,
+                    finalAmount,
+                    carId:
+                        Number.isFinite(Number(bookingDetails?.carId)) &&
+                        Number(bookingDetails?.carId) > 0
+                            ? Number(bookingDetails?.carId)
+                            : null,
+                    userId: requestUser?.id ?? null,
+                    carName,
+                    userName,
+                    userPhone: normalizedPhone ?? contact,
+                    dateFrom: normalizedBooking.dateFrom,
+                    dateTo: normalizedBooking.dateTo,
+                    startsAt: normalizedBooking.startsAt,
+                    endsAt: normalizedBooking.endsAt,
+                    durationUnit: normalizedBooking.durationUnit,
+                    durationValue: normalizedBooking.durationValue,
+                    totalPrice: subtotalAmount,
+                    status: 'pending',
+                });
+
+                bookingSaved = true;
+                bookingId = booking.id as string;
+            }
+
+            if (
+                promoValidation?.ok &&
+                /^[0-9a-f-]{36}$/i.test(promoValidation.promo.id)
+            ) {
+                await recordPromoRedemption({
+                    promoCodeId: promoValidation.promo.id,
+                    userId: requestUser?.id ?? null,
+                    requestId: createdRequest.id,
+                    bookingId,
+                    redeemedCode: promoValidation.promo.code,
+                    discountAmount,
+                    finalAmount,
+                    metadata: {
+                        source: source || 'website',
+                    },
+                });
+            }
+
+            const comments = formatLeadComments(
+                bookingDetails,
+                message,
+                promoValidation?.ok ? promoValidation.promo.code : null,
+                discountAmount,
+                finalAmount,
+            );
+            const deliveredTo: string[] = [];
+            let bitrixLeadId: number | string | undefined;
 
             try {
                 const bitrixResult = await sendLeadToBitrix({
                     userName,
-                    contact: userPhone,
+                    contact,
                     carName,
                     comments,
                 });
@@ -308,7 +481,7 @@ export const POST = withRateLimit(
             try {
                 const emailResult = await sendLeadNotificationEmail({
                     userName,
-                    contact: userPhone,
+                    contact,
                     carName,
                     comments,
                 });
@@ -320,11 +493,62 @@ export const POST = withRateLimit(
                 console.error('Ошибка email-уведомления:', error);
             }
 
+            await trackAnalyticsEvent({
+                eventName: expectsBookingRecord
+                    ? 'booking_created'
+                    : 'contact_form_submit',
+                userId: requestUser?.id ?? null,
+                requestId: createdRequest.id,
+                bookingId,
+                carId:
+                    Number.isFinite(Number(bookingDetails?.carId)) &&
+                    Number(bookingDetails?.carId) > 0
+                        ? Number(bookingDetails?.carId)
+                        : null,
+                promoCodeId: promoValidation?.ok ? promoValidation.promo.id : null,
+                source: source || 'website',
+                locale: locale || 'ru',
+                pagePath: pagePath || req.nextUrl.pathname,
+                eventValue: finalAmount || subtotalAmount || null,
+                metadata: {
+                    deliveredTo,
+                    withDriver,
+                    durationUnit: normalizedBooking.durationUnit,
+                    durationValue: normalizedBooking.durationValue,
+                    subtotalAmount,
+                    discountAmount,
+                    finalAmount,
+                },
+            });
+
+            if (promoValidation?.ok) {
+                await trackAnalyticsEvent({
+                    eventName: 'promo_applied',
+                    userId: requestUser?.id ?? null,
+                    requestId: createdRequest.id,
+                    bookingId,
+                    carId:
+                        Number.isFinite(Number(bookingDetails?.carId)) &&
+                        Number(bookingDetails?.carId) > 0
+                            ? Number(bookingDetails?.carId)
+                            : null,
+                    promoCodeId: promoValidation.promo.id,
+                    source: source || 'website',
+                    locale: locale || 'ru',
+                    pagePath: pagePath || req.nextUrl.pathname,
+                    eventValue: discountAmount,
+                    metadata: {
+                        code: promoValidation.promo.code,
+                    },
+                });
+            }
+
             if (deliveredTo.length === 0) {
                 if (process.env.NODE_ENV !== 'production') {
                     console.info('Lead accepted in local mode:', {
+                        requestId: createdRequest.id,
                         userName,
-                        userPhone,
+                        contact,
                         carName,
                         comments,
                     });
@@ -333,8 +557,12 @@ export const POST = withRateLimit(
                         message:
                             'Заявка принята в локальном режиме. Для реальной доставки подключите BITRIX_WEBHOOK_URL или RESEND_API_KEY с TOPCAR_NOTIFICATIONS_EMAIL.',
                         accepted: true,
+                        requestId: createdRequest.id,
                         deliveredTo: ['local-dev-log'],
                         bookingSaved,
+                        bookingId,
+                        discountAmount,
+                        finalAmount,
                     });
                 }
 
@@ -350,9 +578,13 @@ export const POST = withRateLimit(
             return NextResponse.json(
                 {
                     message: 'Заявка успешно принята.',
+                    requestId: createdRequest.id,
                     deliveredTo,
                     leadId: bitrixLeadId,
                     bookingSaved,
+                    bookingId,
+                    discountAmount,
+                    finalAmount,
                 },
                 { status: 200 },
             );

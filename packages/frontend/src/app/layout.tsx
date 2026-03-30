@@ -6,7 +6,9 @@ import '@/styles/globals.css';
 
 import { AuthProvider } from '@/context/AuthContext';
 import { LocaleProvider } from '@/context/LocaleContext';
+import { SiteConfigProvider } from '@/context/SiteConfigContext';
 import FloatingWidget from '@/components/FloatingWidget';
+import { loadSiteConfig } from '@/lib/site-config-server';
 
 const manrope = Manrope({
     subsets: ['latin', 'cyrillic'],
@@ -43,11 +45,13 @@ export const viewport: Viewport = {
     maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const siteConfig = await loadSiteConfig();
+
     return (
         <html lang="ru" className={manrope.className}>
             <head>
@@ -165,10 +169,14 @@ export default function RootLayout({
                 {/* --- END SEO --- */}
             </head>
             <body className="bg-background text-foreground">
-                <LocaleProvider locale="ru">
-                    <AuthProvider>{children}</AuthProvider>
-                </LocaleProvider>
-                <FloatingWidget />
+                <SiteConfigProvider initialValue={siteConfig}>
+                    <LocaleProvider locale="ru">
+                        <AuthProvider>
+                            {children}
+                            <FloatingWidget />
+                        </AuthProvider>
+                    </LocaleProvider>
+                </SiteConfigProvider>
             </body>
         </html>
     );

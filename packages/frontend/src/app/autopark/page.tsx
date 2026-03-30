@@ -19,7 +19,9 @@ export const metadata: Metadata = {
 };
 
 export default async function AutoparkPage() {
-    const { cars, error, configMissing } = await loadCarsCatalog();
+    const { cars, error, configMissing } = await loadCarsCatalog({
+        includeUnavailable: true,
+    });
 
     return (
         <AutoparkPageView

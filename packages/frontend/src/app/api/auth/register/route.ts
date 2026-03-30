@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ensureProtectedMutationRequest } from '@/lib/request-security';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { trackAnalyticsEvent } from '@/lib/analytics-events-server';
 
 function normalizePhone(value: unknown) {
     const normalized = String(value ?? '')
@@ -110,6 +111,19 @@ export const POST = withRateLimit(
                         { status: 500 },
                     );
                 }
+
+                await trackAnalyticsEvent({
+                    eventName: 'registration',
+                    userId: data.user.id,
+                    source: 'auth',
+                    locale:
+                        request.headers.get('x-topcar-locale') ||
+                        request.nextUrl.searchParams.get('locale') ||
+                        'ru',
+                    metadata: {
+                        email: normalizedEmail,
+                    },
+                });
 
                 return NextResponse.json({
                     message: 'Регистрация прошла успешно.',

@@ -3,8 +3,10 @@
 import Image from 'next/image';
 import { Zap, Fuel, Dna, Users, Info, ClockIcon } from 'lucide-react';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
+import CarQuickBookingCard from '@/components/CarQuickBookingCard';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
+import NeedHelpCTA from '@/components/NeedHelpCTA';
 import LocalizedLink from '@/components/LocalizedLink';
 import { useTranslations } from '@/lib/i18n';
 import { Car } from '@/types';
@@ -248,7 +250,13 @@ export default function CarDetailPageView({
                                     </div>
                                 ))}
                             </div>
+
+                            <CarQuickBookingCard car={car} />
                         </div>
+                    </div>
+
+                    <div className="mx-auto mt-12 max-w-6xl">
+                        <NeedHelpCTA source="car-detail" />
                     </div>
                 </section>
             </main>

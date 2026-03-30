@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ServicesSection from '@/components/ServicesSection';
 import FadeInWhenVisible from '@/components/FadeInWhenVisible';
+import NeedHelpCTA from '@/components/NeedHelpCTA';
 import SEOBlock from '@/components/SEOBlock';
 import { useTranslations } from '@/lib/i18n';
 
@@ -46,6 +47,9 @@ export default function ServicesPage() {
 
                 {/* Only the ServicesSection component remains */}
                 <ServicesSection />
+                <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+                    <NeedHelpCTA source="services" />
+                </div>
                 <SEOBlock page="services" />
             </main>
             <Footer />

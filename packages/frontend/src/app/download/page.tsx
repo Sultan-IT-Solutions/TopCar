@@ -8,7 +8,9 @@ import Footer from '@/components/Footer';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import FadeInWhenVisible from '@/components/FadeInWhenVisible';
 import LocalizedLink from '@/components/LocalizedLink';
+import PushSubscriptionCard from '@/components/PushSubscriptionCard';
 import { useTranslations } from '@/lib/i18n';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 import { getLocaleFromPath, localizeHref } from '@/lib/locale-routing';
 import {
     DevicePhoneMobileIcon,
@@ -21,6 +23,7 @@ import {
 
 export default function DownloadPage() {
     const { locale } = useTranslations();
+    const { profile } = useSiteConfig();
     const pathname = usePathname();
     const content =
         locale === 'en'
@@ -57,6 +60,9 @@ export default function DownloadPage() {
                       'Your personal offer will appear here. Explore the site a bit more to unlock it.',
                   fleetCta: 'Go to fleet',
                   homeCta: 'Back to home',
+                  installCta: 'Open installation page',
+                  qrHint: 'Scan the QR code from your phone to open the installation page instantly.',
+                  qrPlaceholder: 'Add a QR code in the admin panel to show it here.',
               }
             : locale === 'kk'
               ? {
@@ -92,6 +98,10 @@ export default function DownloadPage() {
                         'Жеке ұсынысыңыз осында көрсетіледі. Оны алу үшін сайтты көбірек зерттеңіз.',
                     fleetCta: 'Автопаркке өту',
                     homeCta: 'Басты бетке оралу',
+                    installCta: 'Орнату бетін ашу',
+                    qrHint: 'Орнату бетін телефоннан бірден ашу үшін QR-кодты сканерлеңіз.',
+                    qrPlaceholder:
+                        'QR-кодты осы жерде көрсету үшін оны админ-панель арқылы жүктеңіз.',
                 }
               : {
                     title: 'Приложение',
@@ -126,6 +136,10 @@ export default function DownloadPage() {
                         'Здесь появится ваше персональное предложение. Больше просматривайте наш сайт, чтобы получить его.',
                     fleetCta: 'Перейти в автопарк',
                     homeCta: 'Вернуться на главную',
+                    installCta: 'Открыть страницу установки',
+                    qrHint: 'Отсканируйте QR-код с телефона, чтобы сразу открыть страницу установки.',
+                    qrPlaceholder:
+                        'Загрузите QR-код через админ-панель, и он будет показан в этом блоке.',
                 };
 
     const benefits = [
@@ -220,7 +234,36 @@ export default function DownloadPage() {
                                     <p className="mt-3 text-xs text-neutral-500">
                                         {content.installHint}
                                     </p>
+                                    <div className="mt-6 grid gap-5 rounded-2xl border border-neutral-800 bg-black/20 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
+                                        <div>
+                                            <LocalizedLink
+                                                href={profile.pwaDownloadUrl || '/download'}
+                                                className="inline-flex items-center justify-center rounded-full bg-[#d4af37] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#c0982c]"
+                                            >
+                                                {content.installCta}
+                                            </LocalizedLink>
+                                            <p className="mt-3 text-xs text-neutral-500">
+                                                {content.qrHint}
+                                            </p>
+                                        </div>
+                                        <div className="flex justify-center sm:justify-end">
+                                            {profile.pwaQrImageUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={profile.pwaQrImageUrl}
+                                                    alt="TopCar QR"
+                                                    className="h-32 w-32 rounded-2xl border border-neutral-800 object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-32 w-32 items-center justify-center rounded-2xl border border-dashed border-neutral-700 bg-neutral-950 px-4 text-center text-xs text-neutral-500">
+                                                    {content.qrPlaceholder}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <PushSubscriptionCard />
 
                                 <div className="rounded-3xl border border-[#d4af37]/35 bg-gradient-to-r from-[#d4af37]/15 via-neutral-900 to-neutral-900 p-6 text-center sm:p-8">
                                     <div className="mb-3 flex items-center justify-center gap-2">

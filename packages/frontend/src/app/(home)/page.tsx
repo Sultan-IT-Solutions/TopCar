@@ -10,13 +10,16 @@ import Footer from '@/components/Footer';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import Head from 'next/head';
 import Hero from '@/components/Hero';
+import NeedHelpCTA from '@/components/NeedHelpCTA';
 import SEOBlock from '@/components/SEOBlock';
 import CalculatorModal from '@/components/CalculatorModal';
 import PersonalPromoPopup from '@/components/PersonalPromoPopup';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 // import FloatingWidget from '@/components/FloatingWidget';
 
 export default function HomePage() {
     const [showCalcModal, setShowCalcModal] = useState(false);
+    const { profile } = useSiteConfig();
 
     return (
         <AnimatedPageWrapper>
@@ -30,20 +33,23 @@ export default function HomePage() {
                             name: 'TopCar Club',
                             image: 'https://topcar.club/logo.png',
                             url: 'https://topcar.club/',
-                            telephone: '+7 (777) 666-02-95',
+                            telephone: profile.phoneDisplay,
                             address: {
                                 '@type': 'PostalAddress',
-                                streetAddress: 'ул. Байтурсынова, 179/2',
+                                streetAddress: profile.address.ru,
                                 addressLocality: 'Алматы',
                                 addressCountry: 'KZ',
                             },
                             openingHours: 'Mo-Su 00:00-24:00',
                             priceRange: '₸₸₸',
-                            email: 'topcar_club@mail.ru',
+                            email: profile.email,
                             sameAs: [
-                                'https://wa.me/77776660295',
-                                'https://t.me/topcar_elite_kz_support',
-                            ],
+                                profile.whatsappUrl,
+                                profile.telegramUrl,
+                                profile.instagramUrl,
+                                profile.viberUrl,
+                                profile.maxUrl,
+                            ].filter(Boolean),
                         }),
                     }}
                 />
@@ -65,7 +71,10 @@ export default function HomePage() {
                 <HomeCarCatalogSection />
                 <ServicesSection />
                 <FAQ />
-                <Subscription />
+                <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
+                    <NeedHelpCTA source="home" />
+                </div>
+                {profile.subscriptionEnabled && <Subscription />}
                 <SEOBlock page="home" />
                 <Footer />
             </main>

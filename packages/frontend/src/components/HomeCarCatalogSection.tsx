@@ -15,7 +15,7 @@ export default function HomeCarCatalogSection() {
     useEffect(() => {
         const fetchCars = async () => {
             try {
-                const response = await fetch('/api/cars', {
+                const response = await fetch('/api/cars?scope=featured&limit=6', {
                     cache: 'no-store',
                 });
                 const payload = await response.json();

@@ -9,7 +9,6 @@ import {
     BookmarkSquareIcon,
 } from '@heroicons/react/24/outline';
 import { Car, DurationUnit, Price } from '@/types';
-import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
 import FormattedPrice from './FormattedPrice';
 import BookingModal from './BookingModal';
 import { useAuth } from '@/context/AuthContext';
@@ -49,6 +48,13 @@ type StatusMessage = {
     type: 'success' | 'error' | 'info';
     text: string;
 } | null;
+
+type AppliedPromo = {
+    code: string;
+    promoId: string;
+    discountAmount: number;
+    finalAmount: number;
+};
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -96,9 +102,14 @@ export default function CalculatorModal({
     const [bookingInfo, setBookingInfo] = useState<{
         car: Car;
         details: BookingDetails;
+        promoCode?: string;
     } | null>(null);
     const [statusMessage, setStatusMessage] = useState<StatusMessage>(null);
     const [isSavingCalculation, setIsSavingCalculation] = useState(false);
+    const [promoCode, setPromoCode] = useState('');
+    const [promoStatus, setPromoStatus] = useState<StatusMessage>(null);
+    const [isCheckingPromo, setIsCheckingPromo] = useState(false);
+    const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
 
     const copy =
         locale === 'en'
@@ -145,6 +156,12 @@ export default function CalculatorModal({
                   availability: 'Availability',
                   availableForDates: 'Available for selected dates',
                   availableForDate: 'Available on selected date',
+                  promoLabel: 'Promo code',
+                  promoPlaceholder: 'Enter code',
+                  promoApply: 'Apply',
+                  promoChecking: 'Checking...',
+                  discount: 'Discount',
+                  finalTotal: 'Total after discount',
                   saveButton: 'Save estimate',
                   saving: 'Saving...',
                   requestButton: 'Create request',
@@ -194,6 +211,12 @@ export default function CalculatorModal({
                     availability: 'Қолжетімділік',
                     availableForDates: 'Таңдалған күндерге қолжетімді',
                     availableForDate: 'Таңдалған күнге қолжетімді',
+                    promoLabel: 'Промокод',
+                    promoPlaceholder: 'Кодты енгізіңіз',
+                    promoApply: 'Қолдану',
+                    promoChecking: 'Тексерілуде...',
+                    discount: 'Жеңілдік',
+                    finalTotal: 'Жеңілдікпен сома',
                     saveButton: 'Есепті сақтау',
                     saving: 'Сақталуда...',
                     requestButton: 'Өтінім рәсімдеу',
@@ -242,6 +265,12 @@ export default function CalculatorModal({
                     availability: 'Доступность',
                     availableForDates: 'В выбранные даты',
                     availableForDate: 'На выбранную дату',
+                    promoLabel: 'Промокод',
+                    promoPlaceholder: 'Введите код',
+                    promoApply: 'Применить',
+                    promoChecking: 'Проверка...',
+                    discount: 'Скидка',
+                    finalTotal: 'Итог со скидкой',
                     saveButton: 'Сохранить расчет',
                     saving: 'Сохранение...',
                     requestButton: 'Оформить заявку',
@@ -252,31 +281,35 @@ export default function CalculatorModal({
 
         const fetchCars = async () => {
             setIsCarsLoading(true);
-            if (!hasPublicSupabaseConfig()) {
-                setCarsData([]);
-                setStatusMessage({
-                    type: 'info',
-                    text: copy.configMissing,
+            try {
+                const response = await fetch('/api/cars', {
+                    cache: 'no-store',
                 });
-                setIsCarsLoading(false);
-                return;
-            }
+                const payload = await response.json();
 
-            const supabase = getSupabase();
-            const { data, error } = await supabase
-                .from('cars')
-                .select('*, prices (*)')
-                .order('brand')
-                .order('name');
+                if (!response.ok) {
+                    throw new Error(
+                        payload.message || copy.loadError,
+                    );
+                }
 
-            if (error) {
+                if (payload.configMissing) {
+                    setCarsData([]);
+                    setStatusMessage({
+                        type: 'info',
+                        text: copy.configMissing,
+                    });
+                } else {
+                    setCarsData(
+                        Array.isArray(payload.cars) ? (payload.cars as Car[]) : [],
+                    );
+                }
+            } catch (error) {
                 console.error('Ошибка загрузки автомобилей с ценами:', error);
                 setStatusMessage({
                     type: 'error',
                     text: copy.loadError,
                 });
-            } else if (data) {
-                setCarsData(data as Car[]);
             }
             setIsCarsLoading(false);
         };
@@ -287,7 +320,20 @@ export default function CalculatorModal({
     useEffect(() => {
         if (!isOpen) return;
         setStatusMessage(null);
+        setPromoStatus(null);
     }, [isOpen]);
+
+    useEffect(() => {
+        setAppliedPromo(null);
+        setPromoStatus(null);
+    }, [
+        durationUnit,
+        endDate,
+        selectedCarId,
+        selectedHourlyTariffId,
+        serviceType,
+        startDate,
+    ]);
 
     useEffect(() => {
         if (startDate && endDate && endDate < startDate) {
@@ -478,6 +524,7 @@ export default function CalculatorModal({
         () => calculateRentalTotal(selectedPriceInfo, selectedDurationValue),
         [selectedDurationValue, selectedPriceInfo],
     );
+    const effectiveTotalPrice = appliedPromo?.finalAmount ?? totalPrice;
 
     const calculation = useMemo(() => {
         if (
@@ -508,7 +555,7 @@ export default function CalculatorModal({
                 ? formatSingleRentalDate(startDate, locale)
                 : formatRentalPeriod(startDate, endDate, locale),
             pricePerDay: selectedPriceInfo.price_per_day,
-            price: totalPrice,
+            price: effectiveTotalPrice,
             tariffLabel: formatPriceTierLabel(selectedPriceInfo, locale),
             conditions: selectedPriceInfo.conditions,
             startDate,
@@ -535,12 +582,74 @@ export default function CalculatorModal({
         selectedPriceInfo,
         serviceType,
         startDate,
-        totalPrice,
+        effectiveTotalPrice,
     ]);
 
     const handleCarChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedCarId(e.target.value);
         setStatusMessage(null);
+    };
+
+    const handleApplyPromoCode = async () => {
+        if (!calculation || !selectedCar || !promoCode.trim()) {
+            setPromoStatus({
+                type: 'error',
+                text: copy.fillParams,
+            });
+            return;
+        }
+
+        setIsCheckingPromo(true);
+        setPromoStatus(null);
+
+        try {
+            const response = await fetch('/api/check-promocode', {
+                method: 'POST',
+                headers: csrfClientHelper.addTokenToHeaders({
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token
+                        ? {
+                              Authorization: `Bearer ${session.access_token}`,
+                          }
+                        : {}),
+                }),
+                body: JSON.stringify({
+                    code: promoCode.trim(),
+                    carId: selectedCar.id,
+                    durationUnit,
+                    withDriver: serviceType === 'withDriver',
+                    subtotalAmount: totalPrice,
+                }),
+            });
+            const payload = await response.json();
+
+            if (!response.ok) {
+                throw new Error(payload.message || 'Промокод не найден.');
+            }
+
+            setAppliedPromo({
+                code: String(payload.code ?? promoCode).toUpperCase(),
+                promoId: String(payload.promoId ?? ''),
+                discountAmount: Number(payload.discountAmount ?? 0),
+                finalAmount: Number(payload.finalAmount ?? totalPrice),
+            });
+            setPromoCode(String(payload.code ?? promoCode).toUpperCase());
+            setPromoStatus({
+                type: 'success',
+                text: payload.message || 'Промокод применен.',
+            });
+        } catch (error) {
+            setAppliedPromo(null);
+            setPromoStatus({
+                type: 'error',
+                text:
+                    error instanceof Error
+                        ? error.message
+                        : 'Не удалось применить промокод.',
+            });
+        } finally {
+            setIsCheckingPromo(false);
+        }
     };
 
     const handleSaveCalculation = async () => {
@@ -606,7 +715,7 @@ export default function CalculatorModal({
                 carId: selectedCar.id,
                 serviceType: calculation.serviceType,
                 duration: `${calculation.duration} • ${calculation.rentalPeriod}`,
-                price: calculation.price,
+                price: effectiveTotalPrice,
                 conditions: calculation.conditions,
                 startDate,
                 endDate:
@@ -614,6 +723,7 @@ export default function CalculatorModal({
                 durationUnit: calculation.durationUnit,
                 durationValue: calculation.durationValue,
             },
+            promoCode: appliedPromo?.code,
         });
         onClose();
     };
@@ -954,12 +1064,67 @@ export default function CalculatorModal({
                                                         <p className="text-3xl font-bold text-[#d4af37]">
                                                             <FormattedPrice
                                                                 value={
-                                                                    calculation.price
+                                                                    effectiveTotalPrice
                                                                 }
                                                             />{' '}
                                                             ₸
                                                         </p>
                                                     </div>
+                                                </div>
+
+                                                <div className="mt-5 rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-4">
+                                                    <label
+                                                        htmlFor="calculatorPromoCode"
+                                                        className="mb-2 block text-sm font-medium text-neutral-300"
+                                                    >
+                                                        {copy.promoLabel}
+                                                    </label>
+                                                    <div className="flex flex-col gap-3 sm:flex-row">
+                                                        <input
+                                                            id="calculatorPromoCode"
+                                                            type="text"
+                                                            value={promoCode}
+                                                            onChange={(event) =>
+                                                                setPromoCode(
+                                                                    event.target.value.toUpperCase(),
+                                                                )
+                                                            }
+                                                            placeholder={
+                                                                copy.promoPlaceholder
+                                                            }
+                                                            className="min-w-0 flex-1 rounded-xl border border-neutral-600 bg-neutral-800 px-3 py-3 text-base text-white focus:border-[#d4af37] focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={
+                                                                handleApplyPromoCode
+                                                            }
+                                                            disabled={
+                                                                isCheckingPromo ||
+                                                                !promoCode.trim()
+                                                            }
+                                                            className="inline-flex items-center justify-center rounded-xl border border-[#d4af37]/35 bg-[#d4af37]/10 px-4 py-3 text-sm font-semibold text-[#f0dca0] transition-colors hover:bg-[#d4af37]/16 disabled:cursor-not-allowed disabled:opacity-60"
+                                                        >
+                                                            {isCheckingPromo
+                                                                ? copy.promoChecking
+                                                                : copy.promoApply}
+                                                        </button>
+                                                    </div>
+                                                    {promoStatus && (
+                                                        <div
+                                                            className={`mt-3 rounded-2xl border px-4 py-3 text-sm ${
+                                                                promoStatus.type ===
+                                                                'success'
+                                                                    ? 'border-green-500/30 bg-green-500/10 text-green-200'
+                                                                    : promoStatus.type ===
+                                                                        'info'
+                                                                      ? 'border-blue-500/30 bg-blue-500/10 text-blue-200'
+                                                                      : 'border-red-500/30 bg-red-500/10 text-red-200'
+                                                            }`}
+                                                        >
+                                                            {promoStatus.text}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -998,6 +1163,36 @@ export default function CalculatorModal({
                                                             }
                                                         </p>
                                                     </div>
+                                                    {appliedPromo && (
+                                                        <>
+                                                            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+                                                                <p className="text-xs uppercase tracking-[0.16em] text-emerald-200/70">
+                                                                    {copy.discount}
+                                                                </p>
+                                                                <p className="mt-1 text-sm font-semibold text-emerald-100">
+                                                                    <FormattedPrice
+                                                                        value={
+                                                                            appliedPromo.discountAmount
+                                                                        }
+                                                                    />{' '}
+                                                                    ₸
+                                                                </p>
+                                                            </div>
+                                                            <div className="rounded-2xl border border-[#d4af37]/20 bg-[#d4af37]/10 px-4 py-3">
+                                                                <p className="text-xs uppercase tracking-[0.16em] text-[#f0dca0]/80">
+                                                                    {copy.finalTotal}
+                                                                </p>
+                                                                <p className="mt-1 text-sm font-semibold text-[#f0dca0]">
+                                                                    <FormattedPrice
+                                                                        value={
+                                                                            appliedPromo.finalAmount
+                                                                        }
+                                                                    />{' '}
+                                                                    ₸
+                                                                </p>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
 
                                                 {statusMessage && (
@@ -1059,6 +1254,7 @@ export default function CalculatorModal({
                     onClose={() => setBookingInfo(null)}
                     carName={bookingInfo.car.name}
                     bookingDetails={bookingInfo.details}
+                    promoCode={bookingInfo.promoCode}
                 />
             )}
         </>

@@ -3,6 +3,7 @@
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
+import NeedHelpCTA from '@/components/NeedHelpCTA';
 import LocalizedLink from '@/components/LocalizedLink';
 import { useTranslations } from '@/lib/i18n';
 import { serviceDetailsByLocale } from '@/lib/service-details';
@@ -122,6 +123,10 @@ export default function ServiceDetailPageView({ slug }: { slug: string }) {
                         <div className="prose prose-invert lg:prose-xl prose-p:text-muted-foreground">
                             <p>{service.content}</p>
                         </div>
+                    </div>
+
+                    <div className="mx-auto mt-12 max-w-5xl">
+                        <NeedHelpCTA source={`service-${slug}`} />
                     </div>
                 </div>
             </main>

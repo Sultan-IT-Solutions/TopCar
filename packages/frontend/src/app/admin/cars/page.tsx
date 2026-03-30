@@ -34,6 +34,8 @@ type AdminCar = {
     acceleration?: number | null;
     year?: number | null;
     seats?: number | null;
+    is_featured_home?: boolean | null;
+    featured_order?: number | null;
     created_at?: string;
 };
 
@@ -49,6 +51,8 @@ const initialFormState = {
     acceleration: '',
     year: '',
     seats: '',
+    isFeaturedHome: false,
+    featuredOrder: '0',
     file: null as File | null,
 };
 
@@ -126,6 +130,11 @@ export default function AdminCarsPage() {
             acceleration: car.acceleration ? String(car.acceleration) : '',
             year: car.year ? String(car.year) : '',
             seats: car.seats ? String(car.seats) : '',
+            isFeaturedHome: Boolean(car.is_featured_home),
+            featuredOrder:
+                typeof car.featured_order === 'number'
+                    ? String(car.featured_order)
+                    : '0',
             file: null,
         });
         setPreview(car.image_url || null);
@@ -159,6 +168,8 @@ export default function AdminCarsPage() {
             formData.set('acceleration', form.acceleration);
             formData.set('year', form.year);
             formData.set('seats', form.seats);
+            formData.set('is_featured_home', String(form.isFeaturedHome));
+            formData.set('featured_order', form.featuredOrder);
 
             if (form.file) {
                 formData.set('file', form.file);
@@ -457,6 +468,61 @@ export default function AdminCarsPage() {
                                     className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
                                 />
                             </div>
+                            <div className="rounded-2xl border border-neutral-800 bg-black/20 p-4">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p className="text-sm font-semibold text-white">
+                                            Показывать на главной странице
+                                        </p>
+                                        <p className="mt-1 text-xs leading-5 text-neutral-400">
+                                            Главная берет только отмеченные автомобили, сам каталог
+                                            при этом остается единым.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                isFeaturedHome:
+                                                    !current.isFeaturedHome,
+                                            }))
+                                        }
+                                        className={`relative inline-flex h-8 w-16 items-center rounded-full border transition ${
+                                            form.isFeaturedHome
+                                                ? 'border-[#d4af37] bg-[#d4af37]'
+                                                : 'border-neutral-700 bg-neutral-950'
+                                        }`}
+                                        aria-pressed={form.isFeaturedHome}
+                                    >
+                                        <span
+                                            className={`inline-block h-6 w-6 transform rounded-full bg-white transition ${
+                                                form.isFeaturedHome
+                                                    ? 'translate-x-9'
+                                                    : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+                                <div className="mt-4">
+                                    <label className="mb-2 block text-sm font-medium text-neutral-300">
+                                        Порядок показа на главной
+                                    </label>
+                                    <input
+                                        value={form.featuredOrder}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                featuredOrder: event.target.value,
+                                            }))
+                                        }
+                                        placeholder="0"
+                                        type="number"
+                                        min="0"
+                                        className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 outline-none transition focus:border-[#d4af37]"
+                                    />
+                                </div>
+                            </div>
                             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-600 bg-neutral-950 px-4 py-4 text-sm text-neutral-300 transition hover:border-[#d4af37]/50">
                                 <PhotoIcon className="h-5 w-5" />
                                 <span>
@@ -518,7 +584,7 @@ export default function AdminCarsPage() {
                             <div>
                                 <h2 className="text-2xl font-bold">Текущий каталог</h2>
                                 <p className="text-sm text-neutral-400">
-                                    Только server-side чтение и удаление.
+                                    Управляйте полным контентом карточек и выборкой для главной страницы.
                                 </p>
                             </div>
                             <button
@@ -565,6 +631,17 @@ export default function AdminCarsPage() {
                                                     <p className="text-sm text-neutral-400">
                                                         {car.brand} • {car.class}
                                                     </p>
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        {car.is_featured_home ? (
+                                                            <span className="rounded-full border border-[#d4af37]/30 bg-[#d4af37]/10 px-3 py-1 text-xs font-semibold text-[#f0dca0]">
+                                                                Главная • #{car.featured_order ?? 0}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-300">
+                                                                Только автопарк
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <button

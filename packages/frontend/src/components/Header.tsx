@@ -14,6 +14,7 @@ import LoginModal from './LoginModal';
 import CalculatorModal from './CalculatorModal';
 import LanguageSwitcher from './LanguageSwitcher';
 import LocalizedLink from '@/components/LocalizedLink';
+import { trackClientEvent } from '@/lib/analytics-events-client';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useTranslations } from '@/lib/i18n';
 import {
@@ -26,16 +27,6 @@ import {
     LogOut,
     Loader2,
 } from 'lucide-react';
-
-// GTM helper for click analytics
-const pushEvent = (event: string, payload: Record<string, unknown> = {}) => {
-    try {
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({ event, ...payload });
-    } catch {
-        // noop
-    }
-};
 
 const menuVariants: Variants = {
     hidden: { opacity: 0 },
@@ -499,13 +490,13 @@ export default function Header() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-3 w-full bg-brand-accent text-background font-semibold py-3.5 rounded-lg hover:bg-brand-accent-hover active:scale-95 transition-all duration-150"
-                                    onClick={() =>
-                                        pushEvent('contact_click', {
-                                            channel: 'whatsapp',
+                                    onClick={() => {
+                                        void trackClientEvent('messenger_click', {
+                                            messenger: 'whatsapp',
+                                            source: 'header-mobile-cta',
                                             label: 'wa.me/77776660295',
-                                            location: 'header_mobile_cta',
-                                        })
-                                    }
+                                        });
+                                    }}
                                 >
                                     <MessageSquare size={20} />
                                     <span>Написать в WhatsApp</span>

@@ -4,16 +4,16 @@
 import FadeInWhenVisible from './FadeInWhenVisible';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useTranslations } from '@/lib/i18n';
+import { useSiteConfig } from '@/context/SiteConfigContext';
+import { getLocalizedText } from '@/lib/site-config';
 
-// More structured FAQ data
 export default function FAQ() {
-    const { t } = useTranslations();
-    const faqData = [
-        { question: t('faq.payment'), answer: t('faq.paymentDesc') },
-        { question: t('faq.terms'), answer: t('faq.termsDesc') },
-        { question: t('faq.return'), answer: t('faq.returnDesc') },
-        { question: t('faq.outOfCity'), answer: t('faq.outOfCityDesc') },
-    ];
+    const { t, locale } = useTranslations();
+    const { faqItems } = useSiteConfig();
+    const faqData = faqItems.map((item) => ({
+        question: getLocalizedText(item.question, locale),
+        answer: getLocalizedText(item.answer, locale),
+    }));
     const faqJsonLd = {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',

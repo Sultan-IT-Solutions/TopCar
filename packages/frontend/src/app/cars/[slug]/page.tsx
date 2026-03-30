@@ -1,31 +1,8 @@
 // src/app/cars/[slug]/page.tsx
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import CarDetailPageView from '@/components/CarDetailPageView';
-import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
-import { Car } from '@/types';
-
-// Функция для получения деталей автомобиля из Supabase
-async function getCarDetails(slug: string): Promise<Car | null> {
-    if (!hasPublicSupabaseConfig()) {
-        return null;
-    }
-
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-        .from('cars')
-        .select('*, prices (*)') // Выбираем все поля из cars и связанные цены
-        .eq('slug', slug) // Фильтруем по slug
-        .single(); // Ожидаем одну запись
-
-    if (error) {
-        console.error(
-            `Ошибка загрузки автомобиля по slug "${slug}":`,
-            error.message,
-        );
-        return null;
-    }
-    return data as Car | null;
-}
+import { ensureCarSlug } from '@/lib/car-utils';
+import { loadCarBySlug } from '@/lib/cars-server';
 
 // Если вы хотите использовать динамические метаданные
 export async function generateMetadata({
@@ -36,7 +13,7 @@ export async function generateMetadata({
     const { slug, locale = 'ru' } = await params;
     const localePrefix = locale === 'en' || locale === 'kk' ? `/${locale}` : '';
     const canonical = `https://topcar.club${localePrefix}/cars/${slug}`;
-    const car = await getCarDetails(slug);
+    const { car } = await loadCarBySlug(slug);
 
     if (!car) {
         return {
@@ -101,10 +78,15 @@ export default async function CarDetailPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const car = await getCarDetails(slug);
+    const { car } = await loadCarBySlug(slug);
 
     if (!car) {
         notFound();
+    }
+
+    const canonicalSlug = ensureCarSlug(car);
+    if (canonicalSlug && canonicalSlug !== slug) {
+        redirect(`/cars/${canonicalSlug}`);
     }
 
     return <CarDetailPageView car={car} slug={slug} />;

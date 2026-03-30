@@ -18,13 +18,26 @@
 /.next-build/
 /.next-dev/
 /out/
+/.turbo/
+/.cache/
+.eslintcache
+.stylelintcache
 
 # production
 /build
+/dist
+/tmp
+/temp
 
 # misc
 .DS_Store
+.AppleDouble
+Thumbs.db
 *.pem
+*.swp
+*.swo
+*.orig
+*.rej
 
 # debug
 npm-debug.log*

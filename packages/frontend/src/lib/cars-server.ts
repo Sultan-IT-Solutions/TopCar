@@ -2,8 +2,20 @@ import 'server-only';
 
 import { getSupabase, hasPublicSupabaseConfig } from '@/lib/supabase';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { ensureCarSlug } from '@/lib/car-utils';
+import { ensureCarSlug, isCarAvailable } from '@/lib/car-utils';
 import { Car } from '@/types';
+
+type LoadCarsCatalogOptions = {
+    featuredOnly?: boolean;
+    limit?: number;
+    includeUnavailable?: boolean;
+};
+
+type LoadCarBySlugResult = {
+    car: Car | null;
+    configMissing: boolean;
+    error: string | null;
+};
 
 function makeUniqueSlug(
     baseSlug: string,
@@ -76,7 +88,9 @@ async function backfillCarSlugs(cars: Car[]): Promise<Car[]> {
     }
 }
 
-export async function loadCarsCatalog() {
+export async function loadCarsCatalog(
+    options: LoadCarsCatalogOptions = {},
+) {
     if (!hasPublicSupabaseConfig()) {
         return {
             cars: [] as Car[],
@@ -86,7 +100,23 @@ export async function loadCarsCatalog() {
     }
 
     const supabase = getSupabase();
-    const response = await supabase.from('cars').select('*, prices (*)').order('id');
+    let query = supabase.from('cars').select('*, prices (*)');
+
+    if (options.featuredOnly) {
+        query = query
+            .eq('is_featured_home', true)
+            .order('featured_order')
+            .order('brand')
+            .order('name');
+    } else {
+        query = query.order('brand').order('name');
+    }
+
+    if (options.limit && options.limit > 0) {
+        query = query.limit(options.limit);
+    }
+
+    const response = await query;
 
     if (response.error) {
         return {
@@ -97,9 +127,78 @@ export async function loadCarsCatalog() {
     }
 
     const cars = await backfillCarSlugs((response.data as Car[]) || []);
+    const visibleCars =
+        options.includeUnavailable === true
+            ? cars
+            : cars.filter(isCarAvailable);
     return {
-        cars,
+        cars: visibleCars,
         configMissing: false,
         error: null as string | null,
+    };
+}
+
+export async function loadCarBySlug(
+    slug: string,
+): Promise<LoadCarBySlugResult> {
+    if (!hasPublicSupabaseConfig()) {
+        return {
+            car: null,
+            configMissing: true,
+            error: null,
+        };
+    }
+
+    const normalizedSlug = slug.trim().toLowerCase();
+    const supabase = getSupabase();
+
+    const directResponse = await supabase
+        .from('cars')
+        .select('*, prices (*)')
+        .eq('slug', normalizedSlug)
+        .maybeSingle();
+
+    if (directResponse.error) {
+        return {
+            car: null,
+            configMissing: false,
+            error: directResponse.error.message,
+        };
+    }
+
+    if (directResponse.data) {
+        const [normalizedCar] = await backfillCarSlugs([
+            directResponse.data as Car,
+        ]);
+
+        return {
+            car: normalizedCar ?? null,
+            configMissing: false,
+            error: null,
+        };
+    }
+
+    const fallbackResponse = await supabase
+        .from('cars')
+        .select('*, prices (*)')
+        .order('brand')
+        .order('name');
+
+    if (fallbackResponse.error) {
+        return {
+            car: null,
+            configMissing: false,
+            error: fallbackResponse.error.message,
+        };
+    }
+
+    const cars = await backfillCarSlugs((fallbackResponse.data as Car[]) || []);
+    const car =
+        cars.find((item) => ensureCarSlug(item) === normalizedSlug) ?? null;
+
+    return {
+        car,
+        configMissing: false,
+        error: null,
     };
 }

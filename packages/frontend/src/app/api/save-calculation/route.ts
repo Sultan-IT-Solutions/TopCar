@@ -4,6 +4,8 @@ import { ensureProtectedMutationRequest } from '@/lib/request-security';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
 import { getRequestUser } from '@/lib/user-session';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRequestRecord } from '@/lib/requests-server';
+import { trackAnalyticsEvent } from '@/lib/analytics-events-server';
 
 export const POST = withRateLimit(
     async (request: NextRequest) => {
@@ -47,6 +49,81 @@ export const POST = withRateLimit(
                 console.error('Supabase insert error:', error);
                 throw new Error(error.message);
             }
+
+            const createdRequest = await createRequestRecord({
+                requestType: 'calculation',
+                source: 'calculator',
+                userId: user.id,
+                carId:
+                    Number.isFinite(Number(calculation.carId)) &&
+                    Number(calculation.carId) > 0
+                        ? Number(calculation.carId)
+                        : null,
+                carName: calculation.carName,
+                userName:
+                    typeof user.user_metadata?.name === 'string'
+                        ? user.user_metadata.name
+                        : typeof user.user_metadata?.full_name === 'string'
+                          ? user.user_metadata.full_name
+                          : null,
+                userPhone:
+                    typeof user.user_metadata?.phone === 'string'
+                        ? user.user_metadata.phone
+                        : null,
+                userEmail: user.email ?? null,
+                serviceType: calculation.serviceType,
+                withDriver:
+                    String(calculation.serviceType).toLowerCase().includes(
+                        'водител',
+                    ) ||
+                    String(calculation.serviceType).toLowerCase().includes(
+                        'driver',
+                    ),
+                durationUnit:
+                    calculation.durationUnit === 'hour' ? 'hour' : 'day',
+                durationValue:
+                    Number.isFinite(Number(calculation.durationValue)) &&
+                    Number(calculation.durationValue) > 0
+                        ? Number(calculation.durationValue)
+                        : null,
+                requestedDateFrom: calculation.startDate ?? null,
+                requestedDateTo:
+                    calculation.durationUnit === 'hour'
+                        ? calculation.startDate ?? null
+                        : calculation.endDate ?? null,
+                subtotalAmount: Number(calculation.price ?? 0),
+                finalAmount: Number(calculation.price ?? 0),
+                locale:
+                    request.headers.get('x-topcar-locale') ||
+                    request.nextUrl.searchParams.get('locale') ||
+                    'ru',
+                metadata: {
+                    durationLabel: calculation.duration,
+                    rentalPeriod: calculation.rentalPeriod,
+                    tariffLabel: calculation.tariffLabel,
+                },
+            });
+
+            await trackAnalyticsEvent({
+                eventName: 'calc_saved',
+                userId: user.id,
+                requestId: createdRequest.id,
+                carId:
+                    Number.isFinite(Number(calculation.carId)) &&
+                    Number(calculation.carId) > 0
+                        ? Number(calculation.carId)
+                        : null,
+                source: 'calculator',
+                locale:
+                    request.headers.get('x-topcar-locale') ||
+                    request.nextUrl.searchParams.get('locale') ||
+                    'ru',
+                eventValue: Number(calculation.price ?? 0),
+                metadata: {
+                    durationUnit: calculation.durationUnit ?? 'day',
+                    durationValue: calculation.durationValue ?? null,
+                },
+            });
 
             return NextResponse.json(
                 { message: 'Расчет успешно сохранен!' },

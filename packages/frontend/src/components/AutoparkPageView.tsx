@@ -4,6 +4,7 @@ import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import CarCatalog from '@/components/CarCatalog';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
+import NeedHelpCTA from '@/components/NeedHelpCTA';
 import LocalizedLink from '@/components/LocalizedLink';
 import SEOBlock from '@/components/SEOBlock';
 import { getCarCategories, isCarAvailable } from '@/lib/car-utils';
@@ -147,6 +148,9 @@ export default function AutoparkPageView({
                         isLoading={isLoading}
                         showHeading={false}
                     />
+                    <div className="mt-12">
+                        <NeedHelpCTA source="autopark" />
+                    </div>
                 </div>
                 <SEOBlock page="autopark" />
             </main>

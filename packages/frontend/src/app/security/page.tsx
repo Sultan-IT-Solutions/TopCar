@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import NeedHelpCTA from '@/components/NeedHelpCTA';
 import LocalizedLink from '@/components/LocalizedLink';
 import { useTranslations } from '@/lib/i18n';
 import {
@@ -295,6 +296,10 @@ export default function SecurityPage() {
                                     {content.ctaButton}
                                 </LocalizedLink>
                             </div>
+                        </div>
+
+                        <div className="mt-12">
+                            <NeedHelpCTA source="security" />
                         </div>
                     </div>
                 </section>

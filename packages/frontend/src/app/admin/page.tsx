@@ -6,8 +6,11 @@ import Link from 'next/link';
 import {
     ArrowPathIcon,
     ArrowRightOnRectangleIcon,
+    ChartBarSquareIcon,
+    BuildingOffice2Icon,
     Cog6ToothIcon,
     DocumentTextIcon,
+    InboxIcon,
     TagIcon,
     TicketIcon,
     TruckIcon,
@@ -40,11 +43,51 @@ const adminNavItems = [
         accent: 'text-violet-300',
     },
     {
+        name: 'Промокоды и скидки',
+        description:
+            'Публичные и персональные промокоды, ограничения применения и статистика использования.',
+        href: '/admin/promos',
+        Icon: TagIcon,
+        accent: 'text-fuchsia-300',
+    },
+    {
+        name: 'Заявки и лиды',
+        description:
+            'Единая лента всех запросов с фильтрами по источнику, статусу, автомобилю и промокоду.',
+        href: '/admin/requests',
+        Icon: InboxIcon,
+        accent: 'text-orange-300',
+    },
+    {
+        name: 'Аналитика',
+        description:
+            'Установки PWA, регистрации, клики по мессенджерам, заявки, брони и выручка по датам.',
+        href: '/admin/analytics',
+        Icon: ChartBarSquareIcon,
+        accent: 'text-lime-300',
+    },
+    {
         name: 'Документы компании',
         description: 'Загрузка и замена документов для раздела безопасности.',
         href: '/admin/upload',
         Icon: DocumentTextIcon,
         accent: 'text-amber-300',
+    },
+    {
+        name: 'Контакты и компания',
+        description:
+            'Телефоны, мессенджеры, адрес, почта, PWA-ссылка и общие настройки витрины.',
+        href: '/admin/company',
+        Icon: BuildingOffice2Icon,
+        accent: 'text-cyan-300',
+    },
+    {
+        name: 'FAQ и условия аренды',
+        description:
+            'Редактирование вопросов-ответов и секций условий аренды сразу для трех языков.',
+        href: '/admin/content',
+        Icon: DocumentTextIcon,
+        accent: 'text-rose-300',
     },
 ];
 

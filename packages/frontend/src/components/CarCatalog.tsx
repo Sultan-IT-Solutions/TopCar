@@ -13,6 +13,7 @@ import { useTranslations } from '@/lib/i18n';
 import {
     ensureCarSlug,
     getCarCategories,
+    isCarAvailable,
     normalizeGalleryImages,
 } from '@/lib/car-utils';
 import LocalizedLink from './LocalizedLink';
@@ -35,6 +36,32 @@ function getStartingPrice(car: Car): number {
     }
 
     return Math.min(...candidates);
+}
+
+function supportsDriverMode(car: Car, withDriver: boolean): boolean {
+    const prices = car.prices ?? [];
+
+    if (withDriver) {
+        return prices.some((price) => price.with_driver);
+    }
+
+    return (
+        prices.some((price) => !price.with_driver) || getStartingPrice(car) > 0
+    );
+}
+
+function supportsDurationUnit(car: Car, durationUnit: 'day' | 'hour'): boolean {
+    const prices = car.prices ?? [];
+
+    if (durationUnit === 'day' && getStartingPrice(car) > 0) {
+        return true;
+    }
+
+    return prices.some(
+        (price) =>
+            (price.duration_unit ?? 'day') === durationUnit &&
+            price.price_per_day > 0,
+    );
 }
 
 function CarCard({
@@ -135,9 +162,9 @@ function CarCard({
             />
             <LocalizedLink
                 href={`/cars/${carSlug}`}
-                className="group block h-full"
+                className="group block h-full w-full"
             >
-                <article className="flex h-full flex-col overflow-hidden rounded-[28px] border border-white/8 bg-[#121212] shadow-[0_24px_80px_rgba(0,0,0,0.42)] transition-all duration-300 ease-in-out hover:-translate-y-1.5 hover:border-[#d4af37]/35 hover:shadow-[0_36px_100px_rgba(0,0,0,0.56)]">
+                <article className="flex h-full w-full flex-col overflow-hidden rounded-[28px] border border-white/8 bg-[#121212] shadow-[0_24px_80px_rgba(0,0,0,0.42)] transition-all duration-300 ease-in-out hover:-translate-y-1.5 hover:border-[#d4af37]/35 hover:shadow-[0_36px_100px_rgba(0,0,0,0.56)]">
                     <div className="relative aspect-[16/11] w-full overflow-hidden">
                         <Image
                             src={primaryImage}
@@ -267,6 +294,15 @@ export default function CarCatalog({
 }) {
     const { t, locale } = useTranslations();
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedBrand, setSelectedBrand] = useState('all');
+    const [selectedRentalFormat, setSelectedRentalFormat] = useState('all');
+    const [selectedDurationMode, setSelectedDurationMode] = useState('all');
+    const [selectedAvailability, setSelectedAvailability] = useState('all');
+    const [selectedFuelType, setSelectedFuelType] = useState('all');
+    const [selectedDriveType, setSelectedDriveType] = useState('all');
+    const [selectedSeats, setSelectedSeats] = useState('all');
+    const [maxPrice, setMaxPrice] = useState('');
+    const [sortBy, setSortBy] = useState('featured');
 
     const getCategoryLabel = (category: string) => {
         const categoryLabels: Record<string, string> = {
@@ -280,11 +316,261 @@ export default function CarCatalog({
     };
 
     const categories = useMemo(() => getCarCategories(cars), [cars]);
+    const brands = useMemo(
+        () =>
+            Array.from(
+                new Set(cars.map((car) => car.brand?.trim()).filter(Boolean)),
+            ).sort((left, right) => String(left).localeCompare(String(right), 'ru')),
+        [cars],
+    );
+    const fuelTypes = useMemo(
+        () =>
+            Array.from(
+                new Set(cars.map((car) => car.fuel_type?.trim()).filter(Boolean)),
+            ).sort((left, right) => String(left).localeCompare(String(right), 'ru')),
+        [cars],
+    );
+    const driveTypes = useMemo(
+        () =>
+            Array.from(
+                new Set(cars.map((car) => car.drive_type?.trim()).filter(Boolean)),
+            ).sort((left, right) => String(left).localeCompare(String(right), 'ru')),
+        [cars],
+    );
+    const seatOptions = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    cars
+                        .map((car) =>
+                            typeof car.seats === 'number' && car.seats > 0
+                                ? car.seats
+                                : null,
+                        )
+                        .filter((value): value is number => value !== null),
+                ),
+            ).sort((left, right) => left - right),
+        [cars],
+    );
+
+    const filterCopy =
+        locale === 'en'
+            ? {
+                  brand: 'Brand',
+                  format: 'Rental format',
+                  durationMode: 'Duration',
+                  availability: 'Availability',
+                  fuel: 'Fuel',
+                  drive: 'Drive',
+                  seats: 'Seats',
+                  maxPrice: 'Max daily price',
+                  sort: 'Sort',
+                  allBrands: 'Any brand',
+                  allFormats: 'Any format',
+                  allDurations: 'Days and hours',
+                  allAvailability: 'All cars',
+                  allFuel: 'Any fuel',
+                  allDrive: 'Any drive',
+                  allSeats: 'Any seating',
+                  availableOnly: 'Available now',
+                  onRequest: 'On request',
+                  withDriver: 'With driver',
+                  withoutDriver: 'Without driver',
+                  byDay: 'By days',
+                  byHour: 'By hours',
+                  featured: 'Featured first',
+                  priceAsc: 'Price: low to high',
+                  priceDesc: 'Price: high to low',
+                  yearDesc: 'Newest first',
+                  titleAsc: 'Name A-Z',
+                  reset: 'Reset filters',
+              }
+            : locale === 'kk'
+              ? {
+                    brand: 'Бренд',
+                    format: 'Жалдау форматы',
+                    durationMode: 'Ұзақтығы',
+                    availability: 'Қолжетімділік',
+                    fuel: 'Отын',
+                    drive: 'Жетек',
+                    seats: 'Орын саны',
+                    maxPrice: 'Макс. тәуліктік баға',
+                    sort: 'Сұрыптау',
+                    allBrands: 'Кез келген бренд',
+                    allFormats: 'Кез келген формат',
+                    allDurations: 'Күн және сағат',
+                    allAvailability: 'Барлық көлік',
+                    allFuel: 'Кез келген отын',
+                    allDrive: 'Кез келген жетек',
+                    allSeats: 'Кез келген орын саны',
+                    availableOnly: 'Қазір қолжетімді',
+                    onRequest: 'Сұраныс бойынша',
+                    withDriver: 'Жүргізушімен',
+                    withoutDriver: 'Жүргізушісіз',
+                    byDay: 'Күнмен',
+                    byHour: 'Сағатпен',
+                    featured: 'Маңыздысы алдымен',
+                    priceAsc: 'Бағасы: төменнен жоғары',
+                    priceDesc: 'Бағасы: жоғарыдан төмен',
+                    yearDesc: 'Жаңа модельдер алдымен',
+                    titleAsc: 'Атауы A-Z',
+                    reset: 'Сүзгілерді тазалау',
+                }
+              : {
+                    brand: 'Бренд',
+                    format: 'Формат аренды',
+                    durationMode: 'Длительность',
+                    availability: 'Доступность',
+                    fuel: 'Топливо',
+                    drive: 'Привод',
+                    seats: 'Места',
+                    maxPrice: 'Макс. цена в сутки',
+                    sort: 'Сортировка',
+                    allBrands: 'Любой бренд',
+                    allFormats: 'Любой формат',
+                    allDurations: 'Дни и часы',
+                    allAvailability: 'Все автомобили',
+                    allFuel: 'Любое топливо',
+                    allDrive: 'Любой привод',
+                    allSeats: 'Любое количество мест',
+                    availableOnly: 'Доступны сейчас',
+                    onRequest: 'Под запрос',
+                    withDriver: 'С водителем',
+                    withoutDriver: 'Без водителя',
+                    byDay: 'По дням',
+                    byHour: 'По часам',
+                    featured: 'Сначала рекомендованные',
+                    priceAsc: 'Цена: по возрастанию',
+                    priceDesc: 'Цена: по убыванию',
+                    yearDesc: 'Сначала новее',
+                    titleAsc: 'Название А-Я',
+                    reset: 'Сбросить фильтры',
+                };
 
     const filteredCars = useMemo(() => {
-        if (selectedCategory === 'all') return cars;
-        return cars.filter((car) => car.class === selectedCategory);
-    }, [cars, selectedCategory]);
+        const maxPriceValue = maxPrice ? Number(maxPrice) : 0;
+
+        const nextCars = cars.filter((car) => {
+            if (selectedCategory !== 'all' && car.class !== selectedCategory) {
+                return false;
+            }
+
+            if (selectedBrand !== 'all' && car.brand !== selectedBrand) {
+                return false;
+            }
+
+            if (
+                selectedAvailability === 'available' &&
+                !isCarAvailable(car)
+            ) {
+                return false;
+            }
+
+            if (
+                selectedAvailability === 'request' &&
+                isCarAvailable(car)
+            ) {
+                return false;
+            }
+
+            if (
+                selectedRentalFormat === 'withDriver' &&
+                !supportsDriverMode(car, true)
+            ) {
+                return false;
+            }
+
+            if (
+                selectedRentalFormat === 'withoutDriver' &&
+                !supportsDriverMode(car, false)
+            ) {
+                return false;
+            }
+
+            if (
+                selectedDurationMode === 'day' &&
+                !supportsDurationUnit(car, 'day')
+            ) {
+                return false;
+            }
+
+            if (
+                selectedDurationMode === 'hour' &&
+                !supportsDurationUnit(car, 'hour')
+            ) {
+                return false;
+            }
+
+            if (selectedFuelType !== 'all' && car.fuel_type !== selectedFuelType) {
+                return false;
+            }
+
+            if (selectedDriveType !== 'all' && car.drive_type !== selectedDriveType) {
+                return false;
+            }
+
+            if (selectedSeats !== 'all') {
+                const minimumSeats = Number(selectedSeats);
+                if (!car.seats || car.seats < minimumSeats) {
+                    return false;
+                }
+            }
+
+            if (maxPriceValue > 0 && getStartingPrice(car) > maxPriceValue) {
+                return false;
+            }
+
+            return true;
+        });
+
+        return nextCars.sort((left, right) => {
+            if (sortBy === 'priceAsc') {
+                return getStartingPrice(left) - getStartingPrice(right);
+            }
+
+            if (sortBy === 'priceDesc') {
+                return getStartingPrice(right) - getStartingPrice(left);
+            }
+
+            if (sortBy === 'yearDesc') {
+                return (right.year ?? 0) - (left.year ?? 0);
+            }
+
+            if (sortBy === 'titleAsc') {
+                return left.name.localeCompare(right.name, 'ru');
+            }
+
+            const featuredDelta =
+                Number(Boolean(right.is_featured_home)) -
+                Number(Boolean(left.is_featured_home));
+
+            if (featuredDelta !== 0) {
+                return featuredDelta;
+            }
+
+            const featuredOrderDelta =
+                Number(left.featured_order ?? 0) -
+                Number(right.featured_order ?? 0);
+
+            if (featuredOrderDelta !== 0) {
+                return featuredOrderDelta;
+            }
+
+            return left.name.localeCompare(right.name, 'ru');
+        });
+    }, [
+        cars,
+        maxPrice,
+        selectedAvailability,
+        selectedBrand,
+        selectedCategory,
+        selectedDriveType,
+        selectedDurationMode,
+        selectedFuelType,
+        selectedRentalFormat,
+        selectedSeats,
+        sortBy,
+    ]);
     const gridClassName = useMemo(
         () => 'mt-10 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3',
         [],
@@ -301,6 +587,18 @@ export default function CarCatalog({
             : locale === 'kk'
               ? `Витринада ${filteredCars.length} көлік`
               : `В витрине ${filteredCars.length} автомобилей`;
+    const resetFilters = () => {
+        setSelectedCategory('all');
+        setSelectedBrand('all');
+        setSelectedRentalFormat('all');
+        setSelectedDurationMode('all');
+        setSelectedAvailability('all');
+        setSelectedFuelType('all');
+        setSelectedDriveType('all');
+        setSelectedSeats('all');
+        setMaxPrice('');
+        setSortBy('featured');
+    };
 
     return (
         <section
@@ -371,8 +669,245 @@ export default function CarCatalog({
                                             </button>
                                         );
                                     })}
+                                    {!showHeading && (
+                                        <button
+                                            type="button"
+                                            onClick={resetFilters}
+                                            className="rounded-full border border-neutral-700 bg-transparent px-4 py-2 text-sm font-semibold text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white"
+                                        >
+                                            {filterCopy.reset}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
+
+                            {!showHeading && (
+                                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                    <label className="space-y-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.brand}
+                                        </span>
+                                        <select
+                                            value={selectedBrand}
+                                            onChange={(event) =>
+                                                setSelectedBrand(event.target.value)
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        >
+                                            <option value="all">
+                                                {filterCopy.allBrands}
+                                            </option>
+                                            {brands.map((brand) => (
+                                                <option key={brand} value={brand}>
+                                                    {brand}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+
+                                    <label className="space-y-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.format}
+                                        </span>
+                                        <select
+                                            value={selectedRentalFormat}
+                                            onChange={(event) =>
+                                                setSelectedRentalFormat(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        >
+                                            <option value="all">
+                                                {filterCopy.allFormats}
+                                            </option>
+                                            <option value="withoutDriver">
+                                                {filterCopy.withoutDriver}
+                                            </option>
+                                            <option value="withDriver">
+                                                {filterCopy.withDriver}
+                                            </option>
+                                        </select>
+                                    </label>
+
+                                    <label className="space-y-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.durationMode}
+                                        </span>
+                                        <select
+                                            value={selectedDurationMode}
+                                            onChange={(event) =>
+                                                setSelectedDurationMode(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        >
+                                            <option value="all">
+                                                {filterCopy.allDurations}
+                                            </option>
+                                            <option value="day">
+                                                {filterCopy.byDay}
+                                            </option>
+                                            <option value="hour">
+                                                {filterCopy.byHour}
+                                            </option>
+                                        </select>
+                                    </label>
+
+                                    <label className="space-y-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.availability}
+                                        </span>
+                                        <select
+                                            value={selectedAvailability}
+                                            onChange={(event) =>
+                                                setSelectedAvailability(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        >
+                                            <option value="all">
+                                                {filterCopy.allAvailability}
+                                            </option>
+                                            <option value="available">
+                                                {filterCopy.availableOnly}
+                                            </option>
+                                            <option value="request">
+                                                {filterCopy.onRequest}
+                                            </option>
+                                        </select>
+                                    </label>
+
+                                    <label className="space-y-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.fuel}
+                                        </span>
+                                        <select
+                                            value={selectedFuelType}
+                                            onChange={(event) =>
+                                                setSelectedFuelType(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        >
+                                            <option value="all">
+                                                {filterCopy.allFuel}
+                                            </option>
+                                            {fuelTypes.map((fuelType) => (
+                                                <option
+                                                    key={fuelType}
+                                                    value={fuelType}
+                                                >
+                                                    {fuelType}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+
+                                    <label className="space-y-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.drive}
+                                        </span>
+                                        <select
+                                            value={selectedDriveType}
+                                            onChange={(event) =>
+                                                setSelectedDriveType(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        >
+                                            <option value="all">
+                                                {filterCopy.allDrive}
+                                            </option>
+                                            {driveTypes.map((driveType) => (
+                                                <option
+                                                    key={driveType}
+                                                    value={driveType}
+                                                >
+                                                    {driveType}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+
+                                    <label className="space-y-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.seats}
+                                        </span>
+                                        <select
+                                            value={selectedSeats}
+                                            onChange={(event) =>
+                                                setSelectedSeats(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        >
+                                            <option value="all">
+                                                {filterCopy.allSeats}
+                                            </option>
+                                            {seatOptions.map((seatValue) => (
+                                                <option
+                                                    key={seatValue}
+                                                    value={seatValue}
+                                                >
+                                                    {seatValue}+
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+
+                                    <label className="space-y-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.maxPrice}
+                                        </span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="1000"
+                                            value={maxPrice}
+                                            onChange={(event) =>
+                                                setMaxPrice(event.target.value)
+                                            }
+                                            placeholder="50000"
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        />
+                                    </label>
+
+                                    <label className="space-y-2 xl:col-span-2">
+                                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                                            {filterCopy.sort}
+                                        </span>
+                                        <select
+                                            value={sortBy}
+                                            onChange={(event) =>
+                                                setSortBy(event.target.value)
+                                            }
+                                            className="w-full rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#d4af37]"
+                                        >
+                                            <option value="featured">
+                                                {filterCopy.featured}
+                                            </option>
+                                            <option value="priceAsc">
+                                                {filterCopy.priceAsc}
+                                            </option>
+                                            <option value="priceDesc">
+                                                {filterCopy.priceDesc}
+                                            </option>
+                                            <option value="yearDesc">
+                                                {filterCopy.yearDesc}
+                                            </option>
+                                            <option value="titleAsc">
+                                                {filterCopy.titleAsc}
+                                            </option>
+                                        </select>
+                                    </label>
+                                </div>
+                            )}
                         </div>
                     </FadeInWhenVisible>
                 )}
@@ -386,7 +921,10 @@ export default function CarCatalog({
                 ) : filteredCars.length > 0 ? (
                     <div className={gridClassName}>
                         {filteredCars.map((car) => (
-                            <FadeInWhenVisible key={car.id} className="flex">
+                            <FadeInWhenVisible
+                                key={car.id}
+                                className="flex w-full"
+                            >
                                 <CarCard
                                     car={car}
                                     getCategoryLabel={getCategoryLabel}

@@ -4,6 +4,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { ensureProtectedMutationRequest } from '@/lib/request-security';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
+import { trackAnalyticsEvent } from '@/lib/analytics-events-server';
 
 export const POST = withRateLimit(
     async (request: NextRequest) => {
@@ -35,6 +36,19 @@ export const POST = withRateLimit(
 
             const { user } = data;
 
+            await trackAnalyticsEvent({
+                eventName: 'login',
+                userId: user.id,
+                source: 'auth',
+                locale:
+                    request.headers.get('x-topcar-locale') ||
+                    request.nextUrl.searchParams.get('locale') ||
+                    'ru',
+                metadata: {
+                    email: user.email ?? normalizedEmail,
+                },
+            });
+
             return NextResponse.json({
                 message: 'Вход выполнен успешно',
                 user: {
@@ -46,7 +60,7 @@ export const POST = withRateLimit(
             });
         } catch (err: unknown) {
             return NextResponse.json(
-                { message: (err as Error).message },
+                { message: (err as Error).message || 'Внутренняя ошибка сервера.' },
                 { status: 500 },
             );
         }

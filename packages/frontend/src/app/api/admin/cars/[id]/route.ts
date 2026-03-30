@@ -192,6 +192,11 @@ export async function PATCH(
         const seatsRaw = String(formData.get('seats') || '').trim();
         const powerRaw = String(formData.get('power') || '').trim();
         const accelerationRaw = String(formData.get('acceleration') || '').trim();
+        const isFeaturedHome =
+            String(formData.get('is_featured_home') || '').trim() === 'true';
+        const featuredOrderRaw = String(
+            formData.get('featured_order') || '',
+        ).trim();
         const file = formData.get('file');
 
         if (!name || !brand || !carClass || !Number.isFinite(price) || price <= 0) {
@@ -205,6 +210,9 @@ export async function PATCH(
         const parsedSeats = seatsRaw ? Number(seatsRaw) : null;
         const parsedPower = powerRaw ? Number(powerRaw) : null;
         const parsedAcceleration = accelerationRaw ? Number(accelerationRaw) : null;
+        const parsedFeaturedOrder = featuredOrderRaw
+            ? Number(featuredOrderRaw)
+            : 0;
 
         if (
             yearRaw &&
@@ -248,6 +256,16 @@ export async function PATCH(
         ) {
             return jsonNoStore(
                 { message: 'Разгон до 100 указан некорректно.' },
+                { status: 400 },
+            );
+        }
+
+        if (
+            featuredOrderRaw &&
+            (!Number.isFinite(parsedFeaturedOrder) || parsedFeaturedOrder < 0)
+        ) {
+            return jsonNoStore(
+                { message: 'Порядок показа на главной указан некорректно.' },
                 { status: 400 },
             );
         }
@@ -335,6 +353,8 @@ export async function PATCH(
                 seats,
                 power,
                 acceleration,
+                is_featured_home: isFeaturedHome,
+                featured_order: parsedFeaturedOrder,
                 image_url: nextImageUrl,
             })
             .eq('id', carId)

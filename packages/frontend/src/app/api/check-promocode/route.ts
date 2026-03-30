@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { type PromoCode } from '@/types';
 import { ensureProtectedMutationRequest } from '@/lib/request-security';
 import { RateLimitPresets, withRateLimit } from '@/lib/rate-limit';
+import { validatePromoCode } from '@/lib/promos-server';
+import { getRequestUser } from '@/lib/user-session';
 
 export const POST = withRateLimit(
     async (request: NextRequest) => {
@@ -12,7 +11,8 @@ export const POST = withRateLimit(
             return securityError;
         }
 
-        const { code } = await request.json();
+        const { code, carId, durationUnit, withDriver, subtotalAmount } =
+            await request.json();
         if (!code) {
             return NextResponse.json(
                 { message: 'Промокод не предоставлен' },
@@ -20,55 +20,43 @@ export const POST = withRateLimit(
             );
         }
 
-        const cookieStore = cookies();
-        const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
         try {
-            const { data, error } = await supabase
-                .from('public_promocodes')
-                .select('*')
-                .eq('code', code.toUpperCase())
-                .single();
+            const user = await getRequestUser(request);
+            const result = await validatePromoCode({
+                code,
+                userId: user?.id ?? null,
+                carId:
+                    Number.isFinite(Number(carId)) && Number(carId) > 0
+                        ? Number(carId)
+                        : null,
+                durationUnit:
+                    durationUnit === 'hour' || durationUnit === 'day'
+                        ? durationUnit
+                        : null,
+                withDriver:
+                    typeof withDriver === 'boolean' ? withDriver : null,
+                subtotalAmount:
+                    Number.isFinite(Number(subtotalAmount)) &&
+                    Number(subtotalAmount) > 0
+                        ? Number(subtotalAmount)
+                        : 0,
+            });
 
-            if (error || !data) {
+            if (!result.ok) {
                 return NextResponse.json(
-                    { message: 'Неверный или истекший промокод' },
+                    { message: result.message },
                     { status: 404 },
                 );
             }
 
-            const promoCode: PromoCode = data;
-
-            if (!promoCode.is_active) {
-                return NextResponse.json(
-                    { message: 'Промокод неактивен' },
-                    { status: 400 },
-                );
-            }
-
-            const now = new Date();
-            const expiryDate = new Date(promoCode.expires_at);
-            if (now > expiryDate) {
-                return NextResponse.json(
-                    { message: 'Срок действия промокода истек' },
-                    { status: 400 },
-                );
-            }
-
-            if (
-                promoCode.usage_limit !== null &&
-                promoCode.times_used >= promoCode.usage_limit
-            ) {
-                return NextResponse.json(
-                    { message: 'Лимит использований промокода исчерпан' },
-                    { status: 400 },
-                );
-            }
-
             return NextResponse.json({
-                message: 'Промокод действителен',
-                discount: promoCode.discount_perc,
-                code: promoCode.code,
+                message: result.message,
+                discount: result.promo.discount_value,
+                discountType: result.promo.discount_type,
+                discountAmount: result.discountAmount,
+                finalAmount: result.finalAmount,
+                code: result.promo.code,
+                promoId: result.promo.id,
             });
         } catch (err: unknown) {
             console.error('Ошибка проверки промокода:', err);

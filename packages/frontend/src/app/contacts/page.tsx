@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, FormEvent, ChangeEvent } from 'react';
+import { useState, FormEvent, ChangeEvent, type ComponentType } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AnimatedPageWrapper from '@/components/AnimatedPageWrapper';
 import FadeInWhenVisible from '@/components/FadeInWhenVisible';
+import { trackClientEvent } from '@/lib/analytics-events-client';
 import { csrfClientHelper } from '@/lib/csrf-client';
 import { useTranslations } from '@/lib/i18n';
+import { useSiteConfig } from '@/context/SiteConfigContext';
+import { getLocalizedText } from '@/lib/site-config';
 import {
     MapPinIcon,
     PhoneIcon,
@@ -34,6 +37,7 @@ const MessengerIconPlaceholder = ({
 
 export default function ContactPage() {
     const { locale } = useTranslations();
+    const { profile } = useSiteConfig();
     const [formValues, setFormValues] = useState({
         name: '',
         contact: '',
@@ -111,10 +115,12 @@ export default function ContactPage() {
                         'Мекенжай: Алматы қ., Байтұрсынова көш., 179/2',
                     phoneAria: '+7 (777) 666-02-95 нөміріне қоңырау шалу',
                     emailAria: 'topcarelite.kz@gmail.com поштасына хат жазу',
-                    workingHours: 'Тәулік бойы, 24/7',
-                    workingHoursAria: 'Жұмыс уақыты: тәулік бойы',
+                    workingHoursAria: 'Жұмыс уақыты',
                     whatsapp: 'WhatsApp-қа жазу',
                     telegram: 'Telegram арқылы байланысу',
+                    instagram: 'Instagram ашу',
+                    viber: 'Viber арқылы байланысу',
+                    max: 'Max арқылы байланысу',
                 }
               : {
                     heroTitle: 'Всегда',
@@ -143,27 +149,27 @@ export default function ContactPage() {
                     addressAria: 'Адрес: г. Алматы, ул. Байтурсынова, 179/2',
                     phoneAria: 'Позвонить по номеру +7 (777) 666-02-95',
                     emailAria: 'Написать на email topcarelite.kz@gmail.com',
-                    workingHours: 'Работаем круглосуточно, 24/7',
-                    workingHoursAria: 'Время работы: круглосуточно',
+                    workingHoursAria: 'Время работы',
                     whatsapp: 'Написать в WhatsApp',
                     telegram: 'Связаться в Telegram',
+                    instagram: 'Открыть Instagram',
+                    viber: 'Связаться в Viber',
+                    max: 'Связаться в Max',
                 };
-
-    // GTM helper: безопасно пушим события, если dataLayer доступен
-    function pushEvent(event: Record<string, unknown>) {
-        if (
-            window &&
-            (window as unknown as { dataLayer?: unknown }).dataLayer
-        ) {
-            (
-                window as unknown as {
-                    dataLayer?: {
-                        push: (event: Record<string, unknown>) => void;
-                    };
-                }
-            ).dataLayer?.push(event);
-        }
-    }
+    const localizedAddress = getLocalizedText(profile.address, locale);
+    const localizedSupportHours = getLocalizedText(profile.supportHours, locale);
+    const phoneAriaLabel =
+        locale === 'en'
+            ? `Call ${profile.phoneDisplay}`
+            : locale === 'kk'
+              ? `${profile.phoneDisplay} нөміріне қоңырау шалу`
+              : `Позвонить по номеру ${profile.phoneDisplay}`;
+    const emailAriaLabel =
+        locale === 'en'
+            ? `Send email to ${profile.email}`
+            : locale === 'kk'
+              ? `${profile.email} поштасына хат жазу`
+              : `Написать на email ${profile.email}`;
 
     const handleInputChange = (
         e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -183,11 +189,9 @@ export default function ContactPage() {
                 message: content.validation,
             });
             setIsLoading(false);
-            // Analytics: form validation error
-            pushEvent({
-                event: 'contact_form_submit',
+            void trackClientEvent('contact_form_submit', {
+                source: 'contacts',
                 form_status: 'validation_error',
-                page: 'contacts',
             });
             return;
         }
@@ -224,11 +228,9 @@ export default function ContactPage() {
             });
             setFormValues({ name: '', contact: '', message: '' });
 
-            // Analytics: form submit success
-            pushEvent({
-                event: 'contact_form_submit',
+            void trackClientEvent('contact_form_submit', {
+                source: 'contacts',
                 form_status: 'success',
-                page: 'contacts',
             });
         } catch (error) {
             console.error('Ошибка при отправке в Bitrix24:', error);
@@ -237,88 +239,110 @@ export default function ContactPage() {
                 message: content.error,
             });
 
-            // Analytics: form submit error
-            pushEvent({
-                event: 'contact_form_submit',
+            void trackClientEvent('contact_form_submit', {
+                source: 'contacts',
                 form_status: 'error',
-                page: 'contacts',
             });
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const contactDetails = [
         {
             Icon: MapPinIcon,
-            text: content.address,
-            href: 'https://go.2gis.com/xxxxx',
-            ariaLabel: content.addressAria,
+            text: localizedAddress,
+            ariaLabel: localizedAddress,
         },
         {
             Icon: PhoneIcon,
-            text: '+7 (777) 666-02-95',
-            href: 'tel:+77776660295',
-            ariaLabel: content.phoneAria,
+            text: profile.phoneDisplay,
+            href: `tel:${profile.phoneRaw}`,
+            ariaLabel: phoneAriaLabel,
         },
         {
             Icon: EnvelopeIcon,
-            text: 'topcarelite.kz@gmail.com',
-            href: 'mailto:topcarelite.kz@gmail.com',
-            ariaLabel: content.emailAria,
+            text: profile.email,
+            href: `mailto:${profile.email}`,
+            ariaLabel: emailAriaLabel,
         },
         {
             Icon: ClockIcon,
-            text: content.workingHours,
-            ariaLabel: content.workingHoursAria,
+            text: localizedSupportHours,
+            ariaLabel: `${content.workingHoursAria}: ${localizedSupportHours}`,
         },
     ];
 
     const messengerLinks = [
-        {
-            name: 'WhatsApp',
-            Icon: () => <MessengerIconPlaceholder name="WA" />,
-            href: 'https://wa.me/77776660295',
-            text: content.whatsapp,
-        },
-        {
-            name: 'Telegram',
-            Icon: () => <MessengerIconPlaceholder name="TG" />,
-            href: 'https://t.me/topcar_elite_kz_support',
-            text: content.telegram,
-        },
-    ];
+        profile.whatsappUrl
+            ? {
+                  name: 'WhatsApp',
+                  Icon: () => <MessengerIconPlaceholder name="WA" />,
+                  href: profile.whatsappUrl,
+                  text: content.whatsapp,
+              }
+            : null,
+        profile.telegramUrl
+            ? {
+                  name: 'Telegram',
+                  Icon: () => <MessengerIconPlaceholder name="TG" />,
+                  href: profile.telegramUrl,
+                  text: content.telegram,
+              }
+            : null,
+        profile.instagramUrl
+            ? {
+                  name: 'Instagram',
+                  Icon: () => <MessengerIconPlaceholder name="IG" />,
+                  href: profile.instagramUrl,
+                  text: content.instagram,
+              }
+            : null,
+        profile.viberUrl
+            ? {
+                  name: 'Viber',
+                  Icon: () => <MessengerIconPlaceholder name="V" />,
+                  href: profile.viberUrl,
+                  text: content.viber,
+              }
+            : null,
+        profile.maxUrl
+            ? {
+                  name: 'Max',
+                  Icon: () => <MessengerIconPlaceholder name="M" />,
+                  href: profile.maxUrl,
+                  text: content.max,
+              }
+            : null,
+    ].filter(Boolean) as Array<{
+        name: string;
+        Icon: ComponentType;
+        href: string;
+        text: string;
+    }>;
 
     // Click handlers for analytics
     const handleContactClick = (href?: string, label?: string) => () => {
         if (!href) return;
         if (href.startsWith('tel:')) {
-            pushEvent({
-                event: 'phone_click',
-                method: 'tel',
+            void trackClientEvent('phone_click', {
                 label: label ?? href,
-                page: 'contacts',
+                source: 'contacts',
             });
         } else if (href.startsWith('mailto:')) {
-            pushEvent({
-                event: 'email_click',
-                method: 'mailto',
+            void trackClientEvent('messenger_click', {
+                messenger: 'email',
                 label: label ?? href,
-                page: 'contacts',
-            });
-        } else if (href.startsWith('http')) {
-            pushEvent({
-                event: 'external_link_click',
-                label: label ?? href,
-                page: 'contacts',
+                source: 'contacts',
             });
         }
     };
 
     const handleMessengerClick = (name: string, href: string) => () => {
-        pushEvent({
-            event: 'messenger_click',
+        void trackClientEvent('messenger_click', {
             messenger: name,
             label: href,
-            page: 'contacts',
+            source: 'contacts',
         });
     };
 
